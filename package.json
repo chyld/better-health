@@ -1,0 +1,27 @@
+{
+  "name": "better-health",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "prepare": "lefthook install",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run test:unit && bun run test:api && bun run test:cli && bun run test:web && bun run test:e2e",
+    "test:unit": "bun test --cwd packages/shared && bun test --cwd apps/api --pass-with-no-tests src/",
+    "test:api": "bun test --cwd apps/api tests/api",
+    "test:cli": "bun test --cwd apps/api --pass-with-no-tests tests/cli",
+    "test:web": "echo 'no web tests yet'",
+    "test:e2e": "echo 'no e2e tests yet'"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/bun": "^1.4.2",
+    "lefthook": "^2.1.16",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: "*.{js,ts,tsx,json,jsonc,css}"
+      run: bunx biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+    typecheck:
+      run: bun run typecheck
+    unit:
+      run: bun run test:unit
+
+pre-push:
+  commands:
+    test:
+      run: bun run test
