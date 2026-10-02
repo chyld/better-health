@@ -7,6 +7,7 @@ import { type Clock, systemClock } from "./lib/clock";
 import { AppError } from "./lib/errors";
 import { FailureLimiter } from "./lib/rate-limit";
 import { authRoutes } from "./routes/auth";
+import { dataRoutes } from "./routes/data";
 
 export interface AppOptions {
   db: Db;
@@ -28,7 +29,8 @@ export function createApp(options: AppOptions) {
     .basePath("/api")
     .use(csrf())
     .get("/health", (c) => c.json({ status: "ok" }, 200))
-    .route("/auth", authRoutes(deps));
+    .route("/auth", authRoutes(deps))
+    .route("/", dataRoutes(deps));
 
   app.notFound((c) => c.json({ error: { code: "not_found", message: "Not found" } }, 404));
   app.onError((err, c) => {
