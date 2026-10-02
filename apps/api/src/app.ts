@@ -8,12 +8,15 @@ import { AppError } from "./lib/errors";
 import { FailureLimiter } from "./lib/rate-limit";
 import { authRoutes } from "./routes/auth";
 import { dataRoutes } from "./routes/data";
+import { testSupportRoutes } from "./routes/test-support";
 
 export interface AppOptions {
   db: Db;
   clock?: Clock;
   loginLimiter?: FailureLimiter;
   cookieSecure?: boolean;
+  /** Mounts /api/test/reset. Only ever true when NODE_ENV=test. */
+  testSupport?: boolean;
 }
 
 export function createApp(options: AppOptions) {
@@ -31,6 +34,8 @@ export function createApp(options: AppOptions) {
     .get("/health", (c) => c.json({ status: "ok" }, 200))
     .route("/auth", authRoutes(deps))
     .route("/", dataRoutes(deps));
+
+  if (options.testSupport) app.route("/test", testSupportRoutes(deps));
 
   app.notFound((c) => c.json({ error: { code: "not_found", message: "Not found" } }, 404));
   app.onError((err, c) => {

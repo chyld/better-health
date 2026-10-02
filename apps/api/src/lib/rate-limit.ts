@@ -29,4 +29,8 @@ export class FailureLimiter {
   reset(key: string): void {
     this.failures.delete(key);
   }
+
+  clear(): void {
+    this.failures.clear();
+  }
 }

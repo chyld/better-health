@@ -36,9 +36,9 @@ describe("month view", () => {
   test("dims future days only", async () => {
     renderApp("/");
     await screen.findByRole("grid");
-    expect(cell("2026-10-03").className).toContain("opacity-50");
-    expect(cell("2026-10-02").className).not.toContain("opacity-50");
-    expect(cell("2026-10-01").className).not.toContain("opacity-50");
+    expect(cell("2026-10-03")).toHaveAttribute("data-future");
+    expect(cell("2026-10-02")).not.toHaveAttribute("data-future");
+    expect(cell("2026-10-01")).not.toHaveAttribute("data-future");
   });
 
   test("shows in, out, net, weight and markers in each cell", async () => {
@@ -135,7 +135,7 @@ describe("navigation", () => {
     renderApp("/calendar/2026-09");
     await screen.findByRole("grid");
     expect(document.querySelector('[aria-current="date"]')).toBeNull();
-    expect(cell("2026-09-30").className).not.toContain("opacity-50");
+    expect(cell("2026-09-30")).not.toHaveAttribute("data-future");
   });
 });
 
@@ -149,7 +149,10 @@ describe("phone layout", () => {
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByRole("heading", { name: "Thursday, October 1" })).toBeInTheDocument();
     expect(history.location.search).toContain("day=2026-10-01");
-    expect(cell("2026-10-01")).toHaveAttribute("aria-selected", "true");
+    expect(cell("2026-10-01").closest('[role="gridcell"]')).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
 
     await user.click(within(sheet).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

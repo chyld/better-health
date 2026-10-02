@@ -19,7 +19,7 @@ export function DayCell({ day, isToday, isFuture, isSelected, tabIndex, onSelect
       data-date={day.date}
       tabIndex={tabIndex}
       aria-label={describeDay(day, { today: isToday })}
-      aria-selected={isSelected}
+      data-future={isFuture || undefined}
       aria-current={isToday ? "date" : undefined}
       onClick={() => onSelect(day.date)}
       className={cn(
@@ -27,7 +27,8 @@ export function DayCell({ day, isToday, isFuture, isSelected, tabIndex, onSelect
         "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isToday && "border-foreground border-2",
         isSelected && "bg-accent ring-2 ring-primary",
-        isFuture && "opacity-50",
+        // Dimmed with colour, not opacity, so text keeps enough contrast.
+        isFuture && "border-dashed text-muted-foreground",
       )}
     >
       <span className="flex items-center justify-between">

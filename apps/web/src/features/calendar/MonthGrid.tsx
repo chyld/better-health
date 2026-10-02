@@ -74,7 +74,12 @@ export function MonthGrid({ month, days, today, selected, onSelect, onMove }: Pr
           {week.map((date, i) => {
             const day = date ? byDate.get(date) : undefined;
             return (
-              <div role="gridcell" key={date ?? `blank-${i}`} className="min-w-0">
+              <div
+                role="gridcell"
+                key={date ?? `blank-${i}`}
+                aria-selected={day ? day.date === selected : undefined}
+                className="min-w-0"
+              >
                 {day && (
                   <DayCell
                     day={day}
