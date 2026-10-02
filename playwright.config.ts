@@ -21,7 +21,7 @@ export default defineConfig({
     locale: "en-US",
   },
   expect: {
-    toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: "disabled" },
+    toHaveScreenshot: { maxDiffPixels: 50, animations: "disabled" },
   },
   projects: [
     { name: "mobile", use: { ...devices["iPhone 14"], browserName: "chromium" } },

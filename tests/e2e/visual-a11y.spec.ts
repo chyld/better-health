@@ -27,6 +27,22 @@ test("calendar with data: accessible and matches the snapshot", async ({ page })
     await fillAndSave(day, "Weight", values.weight);
     await closeDay(page);
   }
+  // Two exercises on the 1st, added through the API with the page's session.
+  const origin = new URL(page.url()).origin;
+  const label = await (
+    await page.request.post("/api/exercise-types", {
+      data: { name: "Walking", unit: "miles" },
+      headers: { origin },
+    })
+  ).json();
+  for (const amount of [3, 1.5]) {
+    await page.request.post("/api/days/2026-10-01/exercises", {
+      data: { exerciseTypeId: label.id, amount },
+      headers: { origin },
+    });
+  }
+  await page.reload();
+  await expect(cell(page, "2026-10-01")).toHaveAccessibleName(/2 exercises/);
   await expect(cell(page, "2026-10-02")).toHaveAccessibleName(/net 300/);
   await page.mouse.move(0, 0);
   await expectNoA11yViolations(page);

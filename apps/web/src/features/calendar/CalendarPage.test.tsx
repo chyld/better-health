@@ -41,39 +41,51 @@ describe("month view", () => {
     expect(cell("2026-10-01")).not.toHaveAttribute("data-future");
   });
 
-  test("shows in, out, net, weight and markers in each cell", async () => {
+  test("each cell shows net, number of exercises and weight", async () => {
     fake.setDay("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182.4, note: "x" });
     const yoga = fake.addType("Yoga");
     fake.addEntry("2026-10-02", yoga.id, 60);
+    fake.addEntry("2026-10-02", yoga.id, 30);
     renderApp("/");
     await screen.findByRole("grid");
 
     const c = cell("2026-10-02");
     expect(c).toHaveAccessibleName(
-      "Friday, October 2, today, in 1850, out 2600, net minus 750, weight 182.4 pounds, 1 exercise, has a note",
+      "Friday, October 2, today, in 1850, out 2600, net minus 750, weight 182.4 pounds, 2 exercises, has a note",
     );
-    expect(c.querySelector('[data-value="in"]')).toHaveTextContent("1.9k");
-    expect(c.querySelector('[data-value="in"]')).toHaveTextContent("1,850");
-    expect(c.querySelector('[data-value="out"]')).toHaveTextContent("2.6k");
-    expect(c.querySelector('[data-value="net"]')).toHaveTextContent("−750");
+    expect(
+      [...c.querySelectorAll("[data-value]")].map((e) => e.getAttribute("data-value")),
+    ).toEqual(["net", "exercise", "weight"]);
+    expect(c.querySelector('[data-value="net"]')).toHaveTextContent("\u2212750");
+    expect(c.querySelector('[data-value="exercise"]')).toHaveTextContent("2");
     expect(c.querySelector('[data-value="weight"]')).toHaveTextContent("182.4");
-    expect(c.querySelector('[title="Exercise"]')).not.toBeNull();
+    expect(c.querySelector('[data-value="in"]')).toBeNull();
+    expect(c.querySelector('[data-value="out"]')).toBeNull();
     expect(c.querySelector('[title="Note"]')).not.toBeNull();
+  });
+
+  test("large nets are shortened on small screens", async () => {
+    fake.setDay("2026-10-01", { caloriesIn: 3500, caloriesOut: 2000 });
+    renderApp("/");
+    await screen.findByRole("grid");
+    const net = cell("2026-10-01").querySelector('[data-value="net"]');
+    expect(net).toHaveTextContent("+1.5k");
+    expect(net).toHaveTextContent("+1,500");
   });
 
   test("an empty day shows no values or markers", async () => {
     renderApp("/");
     await screen.findByRole("grid");
     expect(cell("2026-10-05").querySelectorAll("[data-value]")).toHaveLength(0);
-    expect(cell("2026-10-05").querySelector('[title="Exercise"]')).toBeNull();
+    expect(cell("2026-10-05").querySelector('[title="Note"]')).toBeNull();
   });
 
   test("net only appears when both in and out are logged", async () => {
     fake.setDay("2026-10-01", { caloriesIn: 1800 });
     renderApp("/");
     await screen.findByRole("grid");
-    expect(cell("2026-10-01").querySelector('[data-value="in"]')).not.toBeNull();
     expect(cell("2026-10-01").querySelector('[data-value="net"]')).toBeNull();
+    expect(cell("2026-10-01")).toHaveAccessibleName(/in 1800/);
   });
 
   test("only one day is in the tab order", async () => {

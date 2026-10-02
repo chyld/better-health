@@ -36,9 +36,6 @@ export function DayCell({ day, isToday, isFuture, isSelected, tabIndex, onSelect
           {dayNumber}
         </span>
         <span className="flex gap-0.5" aria-hidden="true">
-          {day.exerciseCount > 0 && (
-            <span className="size-1.5 rounded-full bg-foreground" title="Exercise" />
-          )}
           {day.hasNote && (
             <span className="size-1.5 rounded-full border border-foreground" title="Note" />
           )}
@@ -49,38 +46,25 @@ export function DayCell({ day, isToday, isFuture, isSelected, tabIndex, onSelect
   );
 }
 
+/** Net calories, number of exercises and weight: the same three rows on every screen. */
 function Values({ day }: { day: DaySummary }) {
   const rows: { key: string; short: string; long: string; compact: string; full: string }[] = [];
-  if (day.caloriesIn !== null) {
-    rows.push({
-      key: "in",
-      short: "↓",
-      long: "In",
-      compact: formatCompact(day.caloriesIn),
-      full: formatNumber(day.caloriesIn),
-    });
-  }
-  if (day.caloriesOut !== null) {
-    rows.push({
-      key: "out",
-      short: "↑",
-      long: "Out",
-      compact: formatCompact(day.caloriesOut),
-      full: formatNumber(day.caloriesOut),
-    });
-  }
   if (day.net !== null) {
     rows.push({
       key: "net",
-      short: "=",
+      short: "Net",
       long: "Net",
       compact: formatCompact(day.net, { signed: true }),
       full: formatNumber(day.net, { signed: true }),
     });
   }
+  if (day.exerciseCount > 0) {
+    const n = String(day.exerciseCount);
+    rows.push({ key: "exercise", short: "Ex", long: "Exercise", compact: n, full: n });
+  }
   if (day.weightLbs !== null) {
     const w = formatWeight(day.weightLbs);
-    rows.push({ key: "weight", short: "", long: "lbs", compact: w, full: w });
+    rows.push({ key: "weight", short: "lb", long: "Weight", compact: w, full: w });
   }
   return (
     <span className="flex flex-col" aria-hidden="true">
@@ -90,23 +74,14 @@ function Values({ day }: { day: DaySummary }) {
           data-value={r.key}
           className="flex justify-between gap-1 whitespace-nowrap"
         >
-          {r.key === "weight" ? (
-            <>
-              <span>{r.compact}</span>
-              <span className="hidden text-muted-foreground md:inline">{r.long}</span>
-            </>
-          ) : (
-            <>
-              <span className="text-muted-foreground">
-                <span className="md:hidden">{r.short}</span>
-                <span className="hidden md:inline">{r.long}</span>
-              </span>
-              <span>
-                <span className="md:hidden">{r.compact}</span>
-                <span className="hidden md:inline">{r.full}</span>
-              </span>
-            </>
-          )}
+          <span className="text-muted-foreground">
+            <span className="md:hidden">{r.short}</span>
+            <span className="hidden md:inline">{r.long}</span>
+          </span>
+          <span>
+            <span className="md:hidden">{r.compact}</span>
+            <span className="hidden md:inline">{r.full}</span>
+          </span>
         </span>
       ))}
     </span>
