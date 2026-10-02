@@ -1,4 +1,5 @@
-import { calendarWeeks, type DaySummary, WEEKDAYS } from "@better-health/shared";
+import { addDays, calendarWeeks, type DaySummary, WEEKDAYS } from "@better-health/shared";
+import { type KeyboardEvent, useEffect, useRef } from "react";
 import { DayCell } from "./DayCell";
 
 interface Props {
@@ -7,17 +8,53 @@ interface Props {
   today: string;
   selected: string | undefined;
   onSelect: (date: string) => void;
+  /** Keyboard movement; the target may be in another month. */
+  onMove: (date: string) => void;
 }
 
-export function MonthGrid({ month, days, today, selected, onSelect }: Props) {
+const MOVES: Record<string, (date: string) => string> = {
+  ArrowLeft: (d) => addDays(d, -1),
+  ArrowRight: (d) => addDays(d, 1),
+  ArrowUp: (d) => addDays(d, -7),
+  ArrowDown: (d) => addDays(d, 7),
+  Home: (d) => addDays(d, -new Date(`${d}T00:00:00Z`).getUTCDay()),
+  End: (d) => addDays(d, 6 - new Date(`${d}T00:00:00Z`).getUTCDay()),
+};
+
+export function MonthGrid({ month, days, today, selected, onSelect, onMove }: Props) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const keyboardMoved = useRef(false);
   const byDate = new Map(days.map((d) => [d.date, d]));
   const weeks = calendarWeeks(month);
   // One cell is tabbable at a time: the selected day, else today, else the 1st.
   const focusDate =
     (selected && byDate.has(selected) && selected) || (byDate.has(today) ? today : days[0]?.date);
 
+  // After a keyboard move, focus follows the selection, even into a new month.
+  useEffect(() => {
+    if (!keyboardMoved.current || !focusDate) return;
+    keyboardMoved.current = false;
+    gridRef.current?.querySelector<HTMLElement>(`[data-date="${focusDate}"]`)?.focus();
+  }, [focusDate]);
+
+  function onKeyDown(event: KeyboardEvent) {
+    const move = MOVES[event.key];
+    const from = (event.target as HTMLElement).dataset.date;
+    if (!move || !from) return;
+    event.preventDefault();
+    keyboardMoved.current = true;
+    onMove(move(from));
+  }
+
   return (
-    <div role="grid" aria-label="Month" aria-readonly="true" className="flex flex-col gap-1">
+    <div
+      ref={gridRef}
+      role="grid"
+      aria-label="Month"
+      aria-readonly="true"
+      onKeyDown={onKeyDown}
+      className="flex flex-col gap-1"
+    >
       <div role="row" className="grid grid-cols-7 gap-1">
         {WEEKDAYS.map((d) => (
           <div

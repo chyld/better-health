@@ -50,3 +50,10 @@ export function shiftMonth(value: string, delta: number): string {
 export function localIsoDate(date: Date): string {
   return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
 }
+
+/** The date `n` days after `date` (negative goes back). */
+export function addDays(date: string, n: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return formatDate(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+}

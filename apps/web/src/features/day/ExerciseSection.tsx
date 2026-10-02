@@ -145,6 +145,12 @@ function ExerciseForm({
   return (
     <form
       onSubmit={submit}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onDone();
+        }
+      }}
       aria-label={entry ? `Edit ${entry.name}` : "Add exercise"}
       className="space-y-3 rounded-md border p-3"
     >

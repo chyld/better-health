@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
 import {
+  addDays,
   datesInMonth,
   daysInMonth,
   formatDate,
@@ -120,5 +121,35 @@ describe("localIsoDate", () => {
   test("uses local calendar fields, not UTC", () => {
     expect(localIsoDate(new Date(2026, 9, 2, 23, 59))).toBe("2026-10-02");
     expect(localIsoDate(new Date(2026, 9, 3, 0, 1))).toBe("2026-10-03");
+  });
+});
+
+describe("addDays", () => {
+  test.each([
+    ["2026-10-02", 1, "2026-10-03"],
+    ["2026-10-31", 1, "2026-11-01"],
+    ["2026-01-01", -1, "2025-12-31"],
+    ["2024-02-28", 1, "2024-02-29"],
+    ["2026-10-02", 7, "2026-10-09"],
+    ["2026-10-02", -7, "2026-09-25"],
+    ["2026-03-08", 1, "2026-03-09"],
+  ])("%s %+i = %s", (from, n, to) => {
+    expect(addDays(from, n)).toBe(to);
+  });
+
+  test("property: adding then subtracting is identity", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1950, max: 2900 }),
+        fc.integer({ min: 1, max: 12 }),
+        fc.integer({ min: 1, max: 28 }),
+        fc.integer({ min: -1000, max: 1000 }),
+        (y, m, d, n) => {
+          const date = formatDate(y, m, d);
+          expect(isValidIsoDate(addDays(date, n))).toBe(true);
+          expect(addDays(addDays(date, n), -n)).toBe(date);
+        },
+      ),
+    );
   });
 });
