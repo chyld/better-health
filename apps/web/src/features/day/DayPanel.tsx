@@ -29,11 +29,18 @@ export function DayPanel({
   const save = (patch: DayPatch) => update.mutate(patch);
 
   return (
-    <section aria-label={`Details for ${longDate(date)}`} className="space-y-5 p-4">
-      <div className="flex items-baseline justify-between gap-2">
-        {heading && <h2 className="text-lg font-semibold">{longDate(date)}</h2>}
-        <SaveStatus pending={update.isPending} error={update.error} saved={update.isSuccess} />
-      </div>
+    <section aria-label={`Details for ${longDate(date)}`} className="space-y-6 p-4 lg:space-y-5">
+      {heading ? (
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold">{longDate(date)}</h2>
+          <SaveStatus pending={update.isPending} error={update.error} saved={update.isSuccess} />
+        </div>
+      ) : (
+        // In the phone sheet the title sits above; the status rides beside the close button.
+        <div className="absolute top-5 right-14">
+          <SaveStatus pending={update.isPending} error={update.error} saved={update.isSuccess} />
+        </div>
+      )}
 
       {isError && (
         <div role="alert" className="flex items-center gap-2 text-sm">
@@ -46,22 +53,27 @@ export function DayPanel({
 
       {day && (
         <>
-          <div className="space-y-3">
-            <NumberField
-              label="Calories in"
-              value={day.caloriesIn}
-              schema={caloriesSchema}
-              onSave={(caloriesIn) => save({ caloriesIn })}
-            />
-            <NumberField
-              label="Calories out"
-              value={day.caloriesOut}
-              schema={caloriesSchema}
-              onSave={(caloriesOut) => save({ caloriesOut })}
-            />
-            <div className="grid grid-cols-[1fr_8rem] items-center gap-3 text-sm">
+          <div className="space-y-4 lg:space-y-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <NumberField
+                label="Calories in"
+                value={day.caloriesIn}
+                schema={caloriesSchema}
+                onSave={(caloriesIn) => save({ caloriesIn })}
+              />
+              <NumberField
+                label="Calories out"
+                value={day.caloriesOut}
+                schema={caloriesSchema}
+                onSave={(caloriesOut) => save({ caloriesOut })}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 lg:grid lg:grid-cols-[1fr_8rem] lg:gap-3 lg:bg-transparent lg:p-0 lg:text-sm">
               <span className="font-medium">Net</span>
-              <output aria-label="Net" className="px-3 text-right font-semibold tabular-nums">
+              <output
+                aria-label="Net"
+                className="text-right text-2xl font-semibold tabular-nums lg:px-3 lg:text-sm"
+              >
                 {day.net === null ? "—" : formatNumber(day.net, { signed: true })}
               </output>
             </div>

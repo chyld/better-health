@@ -3,6 +3,16 @@ import type { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
+import { cn } from "@/lib/utils";
+
+/** Enter on a phone keypad jumps to the next field in the panel instead of doing nothing. */
+export function focusNextField(from: HTMLElement) {
+  const scope = from.closest("section") ?? document;
+  const fields = [...scope.querySelectorAll<HTMLElement>("input, textarea")];
+  const next = fields[fields.indexOf(from) + 1];
+  if (next) next.focus();
+  else from.blur();
+}
 
 interface Props {
   label: string;
@@ -62,14 +72,23 @@ export function NumberField({ label, value, schema, decimal = false, suffix, onS
   }
 
   return (
-    <div className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
-      <Label htmlFor={id}>{label}</Label>
+    <div className="flex flex-col gap-1.5 lg:grid lg:grid-cols-[1fr_8rem] lg:items-center lg:gap-x-3 lg:gap-y-1">
+      <Label htmlFor={id} className="text-muted-foreground lg:text-foreground">
+        {label}
+      </Label>
       <div className="relative">
         <Input
           id={id}
           inputMode={decimal ? "decimal" : "numeric"}
+          enterKeyHint="next"
           autoComplete="off"
           value={text}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              focusNextField(e.currentTarget);
+            }
+          }}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
           onChange={(e) => change(e.target.value)}
@@ -80,16 +99,22 @@ export function NumberField({ label, value, schema, decimal = false, suffix, onS
             focused.current = false;
             save.flush();
           }}
-          className={suffix ? "pr-10 text-right tabular-nums" : "text-right tabular-nums"}
+          className={cn(
+            "h-14 text-right text-2xl tabular-nums md:text-2xl lg:h-9 lg:text-sm",
+            suffix && "pr-14 lg:pr-10",
+          )}
         />
         {suffix && (
-          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+          <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-base text-muted-foreground lg:right-3 lg:text-xs">
             {suffix}
           </span>
         )}
       </div>
       {error && (
-        <p id={`${id}-error`} className="col-span-2 text-right text-xs text-destructive">
+        <p
+          id={`${id}-error`}
+          className="text-sm text-destructive lg:col-span-2 lg:text-right lg:text-xs"
+        >
           {error}
         </p>
       )}

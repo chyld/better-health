@@ -186,6 +186,19 @@ describe("exercise", () => {
     await waitFor(() => expect(cell("2026-10-02")).toHaveAccessibleName(/1 exercise/));
   });
 
+  test("picking a label jumps to the amount field", async () => {
+    fake.addType("Walking", "miles");
+    const { user, form } = await openAddForm();
+    await user.click(within(form).getByRole("radio", { name: "Walking (miles)" }));
+    expect(within(form).getByLabelText("Amount")).toHaveFocus();
+  });
+
+  test("Enter in a number field moves to the next field", async () => {
+    const { user, panel } = await openDesktop();
+    await user.type(within(panel).getByLabelText("Calories in"), "1850{Enter}");
+    expect(within(panel).getByLabelText("Calories out")).toHaveFocus();
+  });
+
   test("decimal amounts are allowed", async () => {
     fake.addType("Running", "km");
     const { user, panel, form } = await openAddForm();

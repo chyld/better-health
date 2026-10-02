@@ -161,7 +161,10 @@ export function CalendarPage() {
             <Plus className="size-6" />
           </Button>
           <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && select(undefined)}>
-            <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-xl">
+            <SheetContent
+              side="bottom"
+              className="h-[92dvh] gap-0 overflow-y-auto rounded-t-xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+            >
               <SheetTitle className="px-4 pt-4 text-lg">
                 {selected ? longDate(selected) : "Day"}
               </SheetTitle>

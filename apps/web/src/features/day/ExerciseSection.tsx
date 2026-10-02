@@ -9,7 +9,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { byRecentUse, exerciseTypesQuery } from "@/features/labels/queries";
@@ -40,7 +40,12 @@ export function ExerciseSection({
           Exercise
         </h3>
         {!addOpen && (
-          <Button variant="outline" size="sm" onClick={() => onAddOpenChange(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-11 px-4 text-base lg:h-8 lg:px-3 lg:text-sm"
+            onClick={() => onAddOpenChange(true)}
+          >
             <Plus /> Add exercise
           </Button>
         )}
@@ -57,7 +62,7 @@ export function ExerciseSection({
               <ExerciseForm date={day.date} entry={entry} onDone={() => setEditing(null)} />
             </li>
           ) : (
-            <li key={entry.id} className="flex items-center gap-2 p-2 text-sm">
+            <li key={entry.id} className="flex items-center gap-2 p-2 text-base lg:text-sm">
               <span className="min-w-0 flex-1">
                 <span className="font-medium">{entry.name}</span>
                 {entry.archived && <span className="text-muted-foreground"> (archived)</span>}
@@ -70,6 +75,7 @@ export function ExerciseSection({
               <Button
                 variant="ghost"
                 size="icon"
+                className="size-11 lg:size-9"
                 aria-label={`Edit ${entryText(entry)}`}
                 onClick={() => setEditing(entry.id)}
               >
@@ -78,6 +84,7 @@ export function ExerciseSection({
               <Button
                 variant="ghost"
                 size="icon"
+                className="size-11 lg:size-9"
                 aria-label={`Delete ${entryText(entry)}`}
                 disabled={mutations.remove.isPending}
                 onClick={() => mutations.remove.mutate(entry.id)}
@@ -116,6 +123,15 @@ function ExerciseForm({
   const [amountText, setAmountText] = useState(entry ? String(entry.amount) : "");
   const mutation = entry ? mutations.update : mutations.add;
   const serverError = errorText(mutation.error);
+  const amountRef = useRef<HTMLInputElement>(null);
+
+  function pick(id: number) {
+    setTypeId(id);
+    // Straight to the amount: on a phone this opens the number pad.
+    const input = amountRef.current;
+    input?.focus();
+    input?.closest("form")?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  }
 
   const choices = byRecentUse(types.data ?? []);
   // An archived label stays selectable on the entry that already uses it.
@@ -180,7 +196,7 @@ function ExerciseForm({
       className="space-y-3 rounded-md border p-3"
     >
       <fieldset>
-        <legend className="mb-2 text-sm font-medium">Exercise</legend>
+        <legend className="mb-2 text-sm font-medium">Pick an exercise</legend>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           {choices.map((t) => (
             <button
@@ -188,9 +204,9 @@ function ExerciseForm({
               type="button"
               role="radio"
               aria-checked={typeId === t.id}
-              onClick={() => setTypeId(t.id)}
+              onClick={() => pick(t.id)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                "rounded-full border px-4 py-2.5 text-base transition-colors lg:px-3 lg:py-1.5 lg:text-sm",
                 typeId === t.id
                   ? "border-primary bg-primary text-primary-foreground"
                   : "hover:bg-accent",
@@ -207,18 +223,20 @@ function ExerciseForm({
         </label>
         <div className="relative">
           <Input
+            ref={amountRef}
             id={`${id}-amount`}
             inputMode="decimal"
+            enterKeyHint="done"
             autoComplete="off"
             value={amountText}
             placeholder="e.g. 3"
             aria-invalid={amountError ? true : undefined}
             aria-describedby={amountError ? `${id}-amount-error` : undefined}
             onChange={(e) => setAmountText(e.target.value)}
-            className="pr-24 tabular-nums"
+            className="h-14 pr-28 text-2xl tabular-nums md:text-2xl lg:h-9 lg:pr-24 lg:text-sm"
           />
           {selected?.unit && (
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-base text-muted-foreground lg:right-3 lg:text-sm">
               {selected.unit}
             </span>
           )}
@@ -234,13 +252,20 @@ function ExerciseForm({
           {serverError}
         </p>
       )}
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+      <div className="grid grid-cols-2 gap-2 lg:flex lg:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-12 text-base lg:h-8 lg:text-sm"
+          onClick={onDone}
+        >
           Cancel
         </Button>
         <Button
           type="submit"
           size="sm"
+          className="h-12 text-base lg:h-8 lg:text-sm"
           disabled={typeId === null || amount === null || mutation.isPending}
         >
           {entry ? "Save" : "Add"}

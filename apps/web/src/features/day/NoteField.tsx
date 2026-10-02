@@ -34,6 +34,7 @@ export function NoteField({
         value={text}
         maxLength={DAY_NOTE_MAX}
         rows={4}
+        className="text-base lg:text-sm"
         placeholder="How did today go?"
         onChange={(e) => {
           setText(e.target.value);
