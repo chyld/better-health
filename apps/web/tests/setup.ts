@@ -2,12 +2,16 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { fake, server } from "./fake-api";
+import { installMatchMedia, setDesktop } from "./viewport";
+
+installMatchMedia();
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();
   fake.reset();
+  setDesktop(false);
 });
 afterAll(() => server.close());
 
