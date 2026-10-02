@@ -1,6 +1,6 @@
 # Better Health
 
-Self-hosted calorie calendar. Each user logs calories in, calories out, weight (lbs), exercises and a note for each day, viewed on a monthly calendar that works on phone, tablet and desktop.
+Self-hosted calorie calendar. Each user logs calories in, calories out, weight (lbs), exercises (e.g. Walking: 3 miles) and a note for each day, viewed on a monthly calendar that works on phone, tablet and desktop.
 
 ## Stack
 

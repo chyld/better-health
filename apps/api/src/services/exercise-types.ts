@@ -1,4 +1,4 @@
-import type { ExerciseType, ExerciseTypePatch } from "@better-health/shared";
+import { type ExerciseType, type ExerciseTypePatch, labelText } from "@better-health/shared";
 import { and, asc, eq, max, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { exerciseEntries, exerciseTypes } from "../db/schema";
@@ -7,7 +7,14 @@ import { ConflictError, NotFoundError } from "../lib/errors";
 
 type Row = typeof exerciseTypes.$inferSelect;
 
-function nameTaken(db: Db, userId: number, name: string, exceptId?: number): Row | undefined {
+/** Another label with the same name and unit, ignoring case. */
+function pairTaken(
+  db: Db,
+  userId: number,
+  name: string,
+  unit: string,
+  exceptId?: number,
+): Row | undefined {
   const row = db
     .select()
     .from(exerciseTypes)
@@ -15,6 +22,7 @@ function nameTaken(db: Db, userId: number, name: string, exceptId?: number): Row
       and(
         eq(exerciseTypes.userId, userId),
         eq(sql`lower(${exerciseTypes.name})`, name.toLowerCase()),
+        eq(sql`lower(${exerciseTypes.unit})`, unit.toLowerCase()),
       ),
     )
     .get();
@@ -24,8 +32,8 @@ function nameTaken(db: Db, userId: number, name: string, exceptId?: number): Row
 function conflict(existing: Row): ConflictError {
   return new ConflictError(
     existing.archivedAt
-      ? `"${existing.name}" already exists but is archived; unarchive it instead`
-      : `"${existing.name}" already exists`,
+      ? `"${labelText(existing)}" already exists but is archived; unarchive it instead`
+      : `"${labelText(existing)}" already exists`,
   );
 }
 
@@ -59,6 +67,7 @@ export function listExerciseTypes(
     .select({
       id: exerciseTypes.id,
       name: exerciseTypes.name,
+      unit: exerciseTypes.unit,
       sortOrder: exerciseTypes.sortOrder,
       archivedAt: exerciseTypes.archivedAt,
       lastUsedOn: lastUsed.lastUsedOn,
@@ -72,6 +81,7 @@ export function listExerciseTypes(
     .map((r) => ({
       id: r.id,
       name: r.name,
+      unit: r.unit,
       sortOrder: r.sortOrder,
       archived: r.archivedAt !== null,
       lastUsedOn: r.lastUsedOn ?? null,
@@ -84,15 +94,23 @@ function toType(db: Db, userId: number, id: number): ExerciseType {
   return found;
 }
 
-export function createExerciseType(db: Db, userId: number, name: string): ExerciseType {
-  const existing = nameTaken(db, userId, name);
+export function createExerciseType(
+  db: Db,
+  userId: number,
+  { name, unit }: { name: string; unit: string },
+): ExerciseType {
+  const existing = pairTaken(db, userId, name, unit);
   if (existing) throw conflict(existing);
   const { next } = db
     .select({ next: sql<number>`coalesce(max(${exerciseTypes.sortOrder}), -1) + 1` })
     .from(exerciseTypes)
     .where(eq(exerciseTypes.userId, userId))
     .get() ?? { next: 0 };
-  const row = db.insert(exerciseTypes).values({ userId, name, sortOrder: next }).returning().get();
+  const row = db
+    .insert(exerciseTypes)
+    .values({ userId, name, unit, sortOrder: next })
+    .returning()
+    .get();
   return toType(db, userId, row.id);
 }
 
@@ -105,10 +123,13 @@ export function updateExerciseType(
 ): ExerciseType {
   const row = requireExerciseType(db, userId, id);
   const changes: Partial<Row> = {};
-  if (patch.name !== undefined && patch.name !== row.name) {
-    const existing = nameTaken(db, userId, patch.name, id);
+  const name = patch.name ?? row.name;
+  const unit = patch.unit ?? row.unit;
+  if (name !== row.name || unit !== row.unit) {
+    const existing = pairTaken(db, userId, name, unit, id);
     if (existing) throw conflict(existing);
-    changes.name = patch.name;
+    changes.name = name;
+    changes.unit = unit;
   }
   if (patch.archived !== undefined && patch.archived !== (row.archivedAt !== null)) {
     changes.archivedAt = patch.archived ? clock.now().toISOString() : null;

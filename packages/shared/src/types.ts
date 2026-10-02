@@ -19,8 +19,9 @@ export interface ExerciseEntry {
   id: number;
   exerciseTypeId: number;
   name: string;
+  unit: string;
   archived: boolean;
-  note: string;
+  amount: number;
   createdAt: string;
 }
 
@@ -37,6 +38,8 @@ export interface DayDetail {
 export interface ExerciseType {
   id: number;
   name: string;
+  /** Empty only for labels created before units existed. */
+  unit: string;
   sortOrder: number;
   archived: boolean;
   lastUsedOn: string | null;

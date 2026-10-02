@@ -44,7 +44,7 @@ describe("month view", () => {
   test("shows in, out, net, weight and markers in each cell", async () => {
     fake.setDay("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182.4, note: "x" });
     const yoga = fake.addType("Yoga");
-    fake.addEntry("2026-10-02", yoga.id, "1h");
+    fake.addEntry("2026-10-02", yoga.id, 60);
     renderApp("/");
     await screen.findByRole("grid");
 

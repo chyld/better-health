@@ -19,12 +19,13 @@ interface EntryRow {
   id: number;
   date: string;
   exerciseTypeId: number;
-  note: string;
+  amount: number;
   createdAt: string;
 }
 interface TypeRow {
   id: number;
   name: string;
+  unit: string;
   sortOrder: number;
   archived: boolean;
 }
@@ -63,8 +64,9 @@ function createFake() {
             id: e.id,
             exerciseTypeId: e.exerciseTypeId,
             name: t?.name ?? "?",
+            unit: t?.unit ?? "",
             archived: t?.archived ?? false,
-            note: e.note,
+            amount: e.amount,
             createdAt: e.createdAt,
           };
         }),
@@ -161,14 +163,14 @@ function createFake() {
       const date = String(params.date);
       const body = (await record(request, `/api/days/${date}/exercises`)) as {
         exerciseTypeId: number;
-        note?: string;
+        amount: number;
       };
       if (!state.types.some((t) => t.id === body.exerciseTypeId)) return notFound();
       state.entries.push({
         id: state.nextId++,
         date,
         exerciseTypeId: body.exerciseTypeId,
-        note: body.note?.trim() ?? "",
+        amount: body.amount,
         createdAt: new Date().toISOString(),
       });
       return HttpResponse.json(dayDetail(date), { status: 201 });
@@ -203,15 +205,24 @@ function createFake() {
     }),
     http.post("*/api/exercise-types", async ({ request }) => {
       if (!state.user) return unauthorized();
-      const body = (await record(request, "/api/exercise-types")) as { name: string };
+      const body = (await record(request, "/api/exercise-types")) as { name: string; unit: string };
       const name = body.name.trim();
-      if (state.types.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+      const unit = body.unit.trim();
+      const same = (t: TypeRow) =>
+        t.name.toLowerCase() === name.toLowerCase() && t.unit.toLowerCase() === unit.toLowerCase();
+      if (state.types.some(same)) {
         return HttpResponse.json(
-          { error: { code: "conflict", message: `"${name}" already exists` } },
+          { error: { code: "conflict", message: `"${name} (${unit})" already exists` } },
           { status: 409 },
         );
       }
-      const row = { id: state.nextId++, name, sortOrder: state.types.length, archived: false };
+      const row = {
+        id: state.nextId++,
+        name,
+        unit,
+        sortOrder: state.types.length,
+        archived: false,
+      };
       state.types.push(row);
       return HttpResponse.json({ ...row, lastUsedOn: null }, { status: 201 });
     }),
@@ -248,17 +259,17 @@ function createFake() {
     setDay(date: string, values: Partial<DayRow>) {
       state.days.set(date, { ...(state.days.get(date) ?? emptyDay()), ...values });
     },
-    addType(name: string, archived = false) {
-      const row = { id: state.nextId++, name, sortOrder: state.types.length, archived };
+    addType(name: string, unit = "reps", archived = false) {
+      const row = { id: state.nextId++, name, unit, sortOrder: state.types.length, archived };
       state.types.push(row);
       return row;
     },
-    addEntry(date: string, exerciseTypeId: number, note = "") {
+    addEntry(date: string, exerciseTypeId: number, amount = 1) {
       const row = {
         id: state.nextId++,
         date,
         exerciseTypeId,
-        note,
+        amount,
         createdAt: "2026-10-02T12:00:00Z",
       };
       state.entries.push(row);

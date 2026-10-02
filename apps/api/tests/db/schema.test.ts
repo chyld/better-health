@@ -47,10 +47,11 @@ describe("daily_logs", () => {
 });
 
 describe("exercise_types", () => {
-  test("names are unique per user regardless of case", () => {
+  test("name + unit pairs are unique per user regardless of case", () => {
     const user = makeUser(db);
-    makeExerciseType(db, user.id, { name: "Running" });
-    expect(() => makeExerciseType(db, user.id, { name: "running" })).toThrow();
+    makeExerciseType(db, user.id, { name: "Running", unit: "miles" });
+    expect(() => makeExerciseType(db, user.id, { name: "running", unit: "MILES" })).toThrow();
+    expect(() => makeExerciseType(db, user.id, { name: "Running", unit: "km" })).not.toThrow();
   });
 
   test("different users can share a name", () => {
@@ -62,15 +63,10 @@ describe("exercise_types", () => {
 });
 
 describe("exercise_entries", () => {
-  test("note defaults to an empty string", () => {
+  test("stores a decimal amount", () => {
     const user = makeUser(db);
     const type = makeExerciseType(db, user.id);
-    const entry = db
-      .insert(exerciseEntries)
-      .values({ userId: user.id, exerciseTypeId: type.id, date: "2026-10-02", createdAt: "x" })
-      .returning()
-      .get();
-    expect(entry.note).toBe("");
+    expect(makeExercise(db, user.id, type.id, { amount: 3.25 }).amount).toBe(3.25);
   });
 
   test("rejects an exercise type that does not exist", () => {

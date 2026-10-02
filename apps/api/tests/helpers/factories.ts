@@ -38,7 +38,7 @@ export function makeExerciseType(
   const n = next();
   return db
     .insert(exerciseTypes)
-    .values({ userId, name: `exercise${n}`, sortOrder: n, ...overrides })
+    .values({ userId, name: `exercise${n}`, unit: "reps", sortOrder: n, ...overrides })
     .returning()
     .get();
 }

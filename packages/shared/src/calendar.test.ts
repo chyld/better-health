@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
-import { calendarWeeks, formatCompact, formatNumber, formatWeight } from "./calendar";
+import {
+  calendarWeeks,
+  entryText,
+  formatAmount,
+  formatCompact,
+  formatNumber,
+  formatWeight,
+  labelText,
+} from "./calendar";
 import { datesInMonth } from "./dates";
 
 describe("calendarWeeks", () => {
@@ -109,5 +117,25 @@ describe("formatWeight", () => {
   test("always shows one decimal", () => {
     expect(formatWeight(182)).toBe("182.0");
     expect(formatWeight(182.4)).toBe("182.4");
+  });
+});
+
+describe("formatAmount", () => {
+  test.each([
+    [3, "3"],
+    [3.5, "3.5"],
+    [2.25, "2.25"],
+    [1234.5, "1,234.5"],
+  ])("%p → %p", (n, s) => {
+    expect(formatAmount(n)).toBe(s);
+  });
+});
+
+describe("labelText / entryText", () => {
+  test("show the unit when there is one", () => {
+    expect(labelText({ name: "Walking", unit: "miles" })).toBe("Walking (miles)");
+    expect(labelText({ name: "Walking", unit: "" })).toBe("Walking");
+    expect(entryText({ name: "Walking", unit: "miles", amount: 3 })).toBe("Walking – 3 miles");
+    expect(entryText({ name: "Pushups", unit: "", amount: 50 })).toBe("Pushups – 50");
   });
 });

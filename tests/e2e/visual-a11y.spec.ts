@@ -42,8 +42,10 @@ test("open day is accessible", async ({ page }) => {
 test("labels page is accessible", async ({ page }) => {
   await login(page);
   await page.goto("/labels");
-  await page.getByRole("textbox", { name: "New label" }).fill("Yoga");
-  await page.getByRole("button", { name: "Add" }).click();
+  const form = page.getByRole("form", { name: "Add label" });
+  await form.getByLabel("Exercise").fill("Yoga");
+  await form.getByLabel("Unit").fill("minutes");
+  await form.getByRole("button", { name: "Add" }).click();
   await expect(page.getByRole("list", { name: "Active" })).toBeVisible();
   await expectNoA11yViolations(page);
 });

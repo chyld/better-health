@@ -40,3 +40,19 @@ export function formatCompact(n: number, { signed = false } = {}): string {
 export function formatWeight(lbs: number): string {
   return lbs.toFixed(1);
 }
+
+/** 3 → "3", 3.5 → "3.5", 1234.25 → "1,234.25". */
+export function formatAmount(n: number): string {
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+/** "Walking (miles)", or just the name for a label without a unit. */
+export function labelText(label: { name: string; unit: string }): string {
+  return label.unit ? `${label.name} (${label.unit})` : label.name;
+}
+
+/** "Walking – 3 miles". */
+export function entryText(entry: { name: string; unit: string; amount: number }): string {
+  const amount = formatAmount(entry.amount);
+  return `${entry.name} – ${entry.unit ? `${amount} ${entry.unit}` : amount}`;
+}

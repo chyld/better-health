@@ -90,32 +90,49 @@ describe("dayPatchSchema", () => {
 });
 
 describe("exercise schemas", () => {
-  test("entry create defaults the note and trims it", () => {
-    expect(exerciseEntryCreateSchema.parse({ exerciseTypeId: 1 })).toEqual({
+  test("entry create takes a label and an amount", () => {
+    expect(exerciseEntryCreateSchema.parse({ exerciseTypeId: 1, amount: 3 })).toEqual({
       exerciseTypeId: 1,
-      note: "",
+      amount: 3,
     });
-    expect(exerciseEntryCreateSchema.parse({ exerciseTypeId: 1, note: " 3 miles " }).note).toBe(
-      "3 miles",
-    );
   });
-  test("entry create rejects bad ids and long notes", () => {
-    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 0 }).success).toBe(false);
+  test.each([0, -1, 100_001, 3.125, Number.NaN])("entry create rejects amount %p", (amount) => {
+    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, amount }).success).toBe(false);
+  });
+  test.each([0.01, 3, 3.5, 2.25, 100_000])("entry create accepts amount %p", (amount) => {
+    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, amount }).success).toBe(true);
+  });
+  test("entry create requires an amount and rejects notes", () => {
+    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1 }).success).toBe(false);
     expect(
-      exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, note: "x".repeat(501) }).success,
+      exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, amount: 3, note: "x" }).success,
     ).toBe(false);
+    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 0, amount: 3 }).success).toBe(
+      false,
+    );
   });
   test("entry patch needs at least one field", () => {
     expect(exerciseEntryPatchSchema.safeParse({}).success).toBe(false);
-    expect(exerciseEntryPatchSchema.safeParse({ note: "5 sets" }).success).toBe(true);
+    expect(exerciseEntryPatchSchema.safeParse({ amount: 4 }).success).toBe(true);
   });
-  test("type names are trimmed, required and capped at 50", () => {
-    expect(exerciseTypeCreateSchema.parse({ name: "  Yoga " }).name).toBe("Yoga");
-    expect(exerciseTypeCreateSchema.safeParse({ name: "   " }).success).toBe(false);
-    expect(exerciseTypeCreateSchema.safeParse({ name: "x".repeat(51) }).success).toBe(false);
+  test("labels need a trimmed name and unit", () => {
+    expect(exerciseTypeCreateSchema.parse({ name: "  Walking ", unit: " miles " })).toEqual({
+      name: "Walking",
+      unit: "miles",
+    });
+    expect(exerciseTypeCreateSchema.safeParse({ name: "Walking" }).success).toBe(false);
+    expect(exerciseTypeCreateSchema.safeParse({ name: "Walking", unit: "  " }).success).toBe(false);
+    expect(exerciseTypeCreateSchema.safeParse({ name: "   ", unit: "miles" }).success).toBe(false);
+    expect(
+      exerciseTypeCreateSchema.safeParse({ name: "x".repeat(51), unit: "miles" }).success,
+    ).toBe(false);
+    expect(
+      exerciseTypeCreateSchema.safeParse({ name: "Walking", unit: "x".repeat(21) }).success,
+    ).toBe(false);
   });
-  test("type patch accepts name and/or archived", () => {
+  test("label patch accepts name, unit and/or archived", () => {
     expect(exerciseTypePatchSchema.safeParse({ archived: true }).success).toBe(true);
+    expect(exerciseTypePatchSchema.safeParse({ unit: "km" }).success).toBe(true);
     expect(exerciseTypePatchSchema.safeParse({}).success).toBe(false);
   });
   test("order rejects empty and duplicate ids", () => {

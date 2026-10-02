@@ -42,7 +42,7 @@ export function addExercise(
       userId,
       date,
       exerciseTypeId: input.exerciseTypeId,
-      note: input.note,
+      amount: input.amount,
       createdAt: clock.now().toISOString(),
     })
     .run();
@@ -63,7 +63,7 @@ export function updateExercise(
   db.update(exerciseEntries)
     .set({
       exerciseTypeId: patch.exerciseTypeId ?? entry.exerciseTypeId,
-      note: patch.note ?? entry.note,
+      amount: patch.amount ?? entry.amount,
     })
     .where(eq(exerciseEntries.id, id))
     .run();

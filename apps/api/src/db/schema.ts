@@ -57,10 +57,18 @@ export const exerciseTypes = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    // Empty only for labels created before units existed.
+    unit: text("unit").notNull().default(""),
     sortOrder: integer("sort_order").notNull(),
     archivedAt: text("archived_at"),
   },
-  (t) => [uniqueIndex("exercise_types_user_name_unique").on(t.userId, sql`lower(${t.name})`)],
+  (t) => [
+    uniqueIndex("exercise_types_user_name_unit_unique").on(
+      t.userId,
+      sql`lower(${t.name})`,
+      sql`lower(${t.unit})`,
+    ),
+  ],
 );
 
 export const exerciseEntries = sqliteTable(
@@ -74,7 +82,7 @@ export const exerciseEntries = sqliteTable(
     exerciseTypeId: integer("exercise_type_id")
       .notNull()
       .references(() => exerciseTypes.id, { onDelete: "cascade" }),
-    note: text("note").notNull().default(""),
+    amount: real("amount").notNull().default(0),
     createdAt: text("created_at").notNull(),
   },
   (t) => [index("exercise_entries_user_date_idx").on(t.userId, t.date)],

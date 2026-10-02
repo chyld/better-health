@@ -76,7 +76,7 @@ export function dataRoutes(deps: Deps) {
       return c.json(listExerciseTypes(db, c.get("user").id, { includeArchived }), 200);
     })
     .post("/exercise-types", validate("json", exerciseTypeCreateSchema), (c) => {
-      return c.json(createExerciseType(db, c.get("user").id, c.req.valid("json").name), 201);
+      return c.json(createExerciseType(db, c.get("user").id, c.req.valid("json")), 201);
     })
     .put("/exercise-types/order", validate("json", exerciseTypeOrderSchema), (c) => {
       return c.json(reorderExerciseTypes(db, c.get("user").id, c.req.valid("json").ids), 200);

@@ -149,6 +149,13 @@ describe("note", () => {
 });
 
 describe("exercise", () => {
+  async function openAddForm() {
+    const r = await openDesktop();
+    await r.user.click(within(r.panel).getByRole("button", { name: "Add exercise" }));
+    const form = await within(r.panel).findByRole("form", { name: "Add exercise" });
+    return { ...r, form };
+  }
+
   test("with no labels, points to the labels page", async () => {
     const { user, panel } = await openDesktop();
     await user.click(within(panel).getByRole("button", { name: "Add exercise" }));
@@ -159,69 +166,121 @@ describe("exercise", () => {
     );
   });
 
-  test("adds a label + note and shows it on the day and calendar", async () => {
-    fake.addType("Pushups");
-    fake.addType("Walking");
-    const { user, panel } = await openDesktop();
-    await user.click(within(panel).getByRole("button", { name: "Add exercise" }));
-    const form = await within(panel).findByRole("form", { name: "Add exercise" });
+  test("pick a label, enter an amount: the unit comes from the label", async () => {
+    fake.addType("Pushups", "reps");
+    fake.addType("Walking", "miles");
+    const { user, panel, form } = await openAddForm();
 
     const add = within(form).getByRole("button", { name: "Add" });
     expect(add).toBeDisabled();
-    await user.click(within(form).getByRole("radio", { name: "Walking" }));
-    await user.type(within(form).getByLabelText("Note"), "3 miles");
+    await user.click(within(form).getByRole("radio", { name: "Walking (miles)" }));
+    expect(within(form).getByText("miles")).toBeInTheDocument();
+    await user.type(within(form).getByLabelText("Amount"), "3");
     await user.click(add);
 
-    expect(await within(panel).findByText("– 3 miles")).toBeInTheDocument();
-    expect(within(panel).getByText("Walking")).toBeInTheDocument();
+    expect(
+      await within(panel).findByRole("button", { name: "Delete Walking – 3 miles" }),
+    ).toBeInTheDocument();
+    expect(fake.state.requests.at(-1)?.body).toEqual({ exerciseTypeId: 2, amount: 3 });
     expect(within(panel).queryByRole("form", { name: "Add exercise" })).toBeNull();
     await waitFor(() => expect(cell("2026-10-02")).toHaveAccessibleName(/1 exercise/));
+  });
+
+  test("decimal amounts are allowed", async () => {
+    fake.addType("Running", "km");
+    const { user, panel, form } = await openAddForm();
+    await user.click(within(form).getByRole("radio", { name: "Running (km)" }));
+    await user.type(within(form).getByLabelText("Amount"), "5.25");
+    await user.click(within(form).getByRole("button", { name: "Add" }));
+    expect(
+      await within(panel).findByRole("button", { name: "Delete Running – 5.25 km" }),
+    ).toBeInTheDocument();
+  });
+
+  test.each([
+    ["abc", "Enter a number"],
+    ["0", "Amount must be more than 0"],
+    ["3.125", "Amount allows two decimal places"],
+    ["200000", "Amount must be at most 100000"],
+  ])("amount %p is rejected with %p", async (input, message) => {
+    fake.addType("Walking", "miles");
+    const { user, form } = await openAddForm();
+    await user.click(within(form).getByRole("radio", { name: "Walking (miles)" }));
+    await user.type(within(form).getByLabelText("Amount"), input);
+    expect(within(form).getByText(message)).toBeInTheDocument();
+    expect(within(form).getByRole("button", { name: "Add" })).toBeDisabled();
+  });
+
+  test("Add needs both a label and an amount", async () => {
+    fake.addType("Walking", "miles");
+    const { user, form } = await openAddForm();
+    await user.type(within(form).getByLabelText("Amount"), "3");
+    expect(within(form).getByRole("button", { name: "Add" })).toBeDisabled();
+    await user.click(within(form).getByRole("radio", { name: "Walking (miles)" }));
+    expect(within(form).getByRole("button", { name: "Add" })).toBeEnabled();
   });
 
   test("the picker lists recently used labels first", async () => {
     const a = fake.addType("Pushups");
     const b = fake.addType("Situps");
-    fake.addType("Yoga");
+    fake.addType("Yoga", "minutes");
     fake.addEntry("2026-09-01", a.id);
     fake.addEntry("2026-09-20", b.id);
-    const { user, panel } = await openDesktop();
-    await user.click(within(panel).getByRole("button", { name: "Add exercise" }));
-    const radios = await within(panel).findAllByRole("radio");
-    expect(radios.map((r) => r.textContent)).toEqual(["Situps", "Pushups", "Yoga"]);
+    const { form } = await openAddForm();
+    expect(
+      within(form)
+        .getAllByRole("radio")
+        .map((r) => r.textContent),
+    ).toEqual(["Situps (reps)", "Pushups (reps)", "Yoga (minutes)"]);
+  });
+
+  test("the same exercise with different units appears as separate choices", async () => {
+    fake.addType("Walking", "miles");
+    fake.addType("Walking", "minutes");
+    const { form } = await openAddForm();
+    expect(
+      within(form)
+        .getAllByRole("radio")
+        .map((r) => r.textContent),
+    ).toEqual(["Walking (miles)", "Walking (minutes)"]);
   });
 
   test("archived labels are not offered", async () => {
-    fake.addType("Yoga", true);
-    fake.addType("Running");
-    const { user, panel } = await openDesktop();
-    await user.click(within(panel).getByRole("button", { name: "Add exercise" }));
-    const radios = await within(panel).findAllByRole("radio");
-    expect(radios.map((r) => r.textContent)).toEqual(["Running"]);
+    fake.addType("Yoga", "minutes", true);
+    fake.addType("Running", "miles");
+    const { form } = await openAddForm();
+    expect(
+      within(form)
+        .getAllByRole("radio")
+        .map((r) => r.textContent),
+    ).toEqual(["Running (miles)"]);
   });
 
-  test("edits an entry's label and note", async () => {
-    const walk = fake.addType("Walking");
-    fake.addType("Running");
-    fake.addEntry("2026-10-02", walk.id, "3 miles");
+  test("edits an entry's label and amount", async () => {
+    const walk = fake.addType("Walking", "miles");
+    fake.addType("Running", "miles");
+    fake.addEntry("2026-10-02", walk.id, 3);
     const { user, panel } = await openDesktop();
-    await user.click(await within(panel).findByRole("button", { name: "Edit Walking" }));
-    const form = within(panel).getByRole("form", { name: "Edit Walking" });
-    expect(within(form).getByRole("radio", { name: "Walking" })).toHaveAttribute(
+    await user.click(await within(panel).findByRole("button", { name: "Edit Walking – 3 miles" }));
+    const form = within(panel).getByRole("form", { name: "Edit Walking – 3 miles" });
+    expect(within(form).getByRole("radio", { name: "Walking (miles)" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
-    await user.click(within(form).getByRole("radio", { name: "Running" }));
-    const note = within(form).getByLabelText("Note");
-    await user.clear(note);
-    await user.type(note, "2 miles");
+    expect(within(form).getByLabelText("Amount")).toHaveValue("3");
+    await user.click(within(form).getByRole("radio", { name: "Running (miles)" }));
+    const amount = within(form).getByLabelText("Amount");
+    await user.clear(amount);
+    await user.type(amount, "2.5");
     await user.click(within(form).getByRole("button", { name: "Save" }));
-    expect(await within(panel).findByText("– 2 miles")).toBeInTheDocument();
-    expect(within(panel).getByText("Running")).toBeInTheDocument();
+    expect(
+      await within(panel).findByRole("button", { name: "Delete Running – 2.5 miles" }),
+    ).toBeInTheDocument();
   });
 
   test("deletes an entry", async () => {
-    const walk = fake.addType("Walking");
-    fake.addEntry("2026-10-02", walk.id, "3 miles");
+    const walk = fake.addType("Walking", "miles");
+    fake.addEntry("2026-10-02", walk.id, 3);
     const { user, panel } = await openDesktop();
     await user.click(
       await within(panel).findByRole("button", { name: "Delete Walking – 3 miles" }),
@@ -230,22 +289,21 @@ describe("exercise", () => {
   });
 
   test("an entry with an archived label is marked and still editable", async () => {
-    const yoga = fake.addType("Yoga", true);
-    fake.addEntry("2026-10-02", yoga.id, "1h");
+    const yoga = fake.addType("Yoga", "minutes", true);
+    fake.addEntry("2026-10-02", yoga.id, 60);
     const { user, panel } = await openDesktop();
     expect(await within(panel).findByText("(archived)")).toBeInTheDocument();
-    await user.click(within(panel).getByRole("button", { name: "Edit Yoga" }));
-    expect(within(panel).getByRole("radio", { name: "Yoga" })).toHaveAttribute(
+    await user.click(within(panel).getByRole("button", { name: "Edit Yoga – 60 minutes" }));
+    expect(within(panel).getByRole("radio", { name: "Yoga (minutes)" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
   });
 
   test("cancel closes the form without saving", async () => {
-    fake.addType("Walking");
-    const { user, panel } = await openDesktop();
-    await user.click(within(panel).getByRole("button", { name: "Add exercise" }));
-    await user.click(await within(panel).findByRole("button", { name: "Cancel" }));
+    fake.addType("Walking", "miles");
+    const { user, panel, form } = await openAddForm();
+    await user.click(within(form).getByRole("button", { name: "Cancel" }));
     expect(within(panel).queryByRole("form", { name: "Add exercise" })).toBeNull();
     expect(fake.state.requests).toHaveLength(0);
   });

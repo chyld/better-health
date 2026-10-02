@@ -4,6 +4,7 @@ import { byRecentUse } from "./queries";
 const t = (id: number, sortOrder: number, lastUsedOn: string | null) => ({
   id,
   name: `t${id}`,
+  unit: "reps",
   sortOrder,
   archived: false,
   lastUsedOn,

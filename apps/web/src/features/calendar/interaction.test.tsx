@@ -67,7 +67,7 @@ describe("keyboard on desktop", () => {
     await within(panel).findByLabelText("Calories in");
     await user.keyboard("e");
     const form = await within(panel).findByRole("form", { name: "Add exercise" });
-    await user.click(within(form).getByLabelText("Note"));
+    await user.click(within(form).getByLabelText("Amount"));
     await user.keyboard("{Escape}");
     await waitFor(() =>
       expect(within(panel).queryByRole("form", { name: "Add exercise" })).toBeNull(),

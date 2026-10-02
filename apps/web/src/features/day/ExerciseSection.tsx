@@ -1,4 +1,11 @@
-import { type DayDetail, EXERCISE_NOTE_MAX, type ExerciseEntry } from "@better-health/shared";
+import {
+  amountSchema,
+  type DayDetail,
+  type ExerciseEntry,
+  entryText,
+  formatAmount,
+  labelText,
+} from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -54,12 +61,16 @@ export function ExerciseSection({
               <span className="min-w-0 flex-1">
                 <span className="font-medium">{entry.name}</span>
                 {entry.archived && <span className="text-muted-foreground"> (archived)</span>}
-                {entry.note && <span className="text-muted-foreground"> – {entry.note}</span>}
+                <span className="text-muted-foreground">
+                  {" – "}
+                  <span className="text-foreground tabular-nums">{formatAmount(entry.amount)}</span>
+                  {entry.unit && ` ${entry.unit}`}
+                </span>
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Edit ${entry.name}`}
+                aria-label={`Edit ${entryText(entry)}`}
                 onClick={() => setEditing(entry.id)}
               >
                 <Pencil />
@@ -67,7 +78,7 @@ export function ExerciseSection({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Delete ${entry.name}${entry.note ? ` – ${entry.note}` : ""}`}
+                aria-label={`Delete ${entryText(entry)}`}
                 disabled={mutations.remove.isPending}
                 onClick={() => mutations.remove.mutate(entry.id)}
               >
@@ -88,7 +99,7 @@ export function ExerciseSection({
   );
 }
 
-/** Adds a new entry, or edits `entry` when given. */
+/** Adds a new entry, or edits `entry` when given: pick a label, enter an amount. */
 function ExerciseForm({
   date,
   entry,
@@ -102,9 +113,9 @@ function ExerciseForm({
   const types = useQuery(exerciseTypesQuery());
   const mutations = useExerciseMutations(date);
   const [typeId, setTypeId] = useState<number | null>(entry?.exerciseTypeId ?? null);
-  const [note, setNote] = useState(entry?.note ?? "");
+  const [amountText, setAmountText] = useState(entry ? String(entry.amount) : "");
   const mutation = entry ? mutations.update : mutations.add;
-  const error = errorText(mutation.error);
+  const serverError = errorText(mutation.error);
 
   const choices = byRecentUse(types.data ?? []);
   // An archived label stays selectable on the entry that already uses it.
@@ -112,18 +123,32 @@ function ExerciseForm({
     choices.unshift({
       id: entry.exerciseTypeId,
       name: entry.name,
+      unit: entry.unit,
       sortOrder: -1,
       archived: true,
       lastUsedOn: null,
     });
   }
+  const selected = choices.find((t) => t.id === typeId);
+
+  const trimmed = amountText.trim();
+  const parsed = /^\d+(\.\d+)?$/.test(trimmed) ? amountSchema.safeParse(Number(trimmed)) : null;
+  const amountError =
+    trimmed === ""
+      ? null
+      : !parsed
+        ? "Enter a number"
+        : parsed.success
+          ? null
+          : (parsed.error.issues[0]?.message ?? "Invalid");
+  const amount = parsed?.success ? parsed.data : null;
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (typeId === null) return;
+    if (typeId === null || amount === null) return;
     const done = { onSuccess: onDone };
-    if (entry) mutations.update.mutate({ id: entry.id, exerciseTypeId: typeId, note }, done);
-    else mutations.add.mutate({ exerciseTypeId: typeId, note }, done);
+    if (entry) mutations.update.mutate({ id: entry.id, exerciseTypeId: typeId, amount }, done);
+    else mutations.add.mutate({ exerciseTypeId: typeId, amount }, done);
   }
 
   if (types.isSuccess && choices.length === 0) {
@@ -151,7 +176,7 @@ function ExerciseForm({
           onDone();
         }
       }}
-      aria-label={entry ? `Edit ${entry.name}` : "Add exercise"}
+      aria-label={entry ? `Edit ${entryText(entry)}` : "Add exercise"}
       className="space-y-3 rounded-md border p-3"
     >
       <fieldset>
@@ -171,33 +196,53 @@ function ExerciseForm({
                   : "hover:bg-accent",
               )}
             >
-              {t.name}
+              {labelText(t)}
             </button>
           ))}
         </div>
       </fieldset>
       <div className="space-y-1">
-        <label htmlFor={`${id}-note`} className="text-sm font-medium">
-          Note
+        <label htmlFor={`${id}-amount`} className="text-sm font-medium">
+          Amount
         </label>
-        <Input
-          id={`${id}-note`}
-          value={note}
-          maxLength={EXERCISE_NOTE_MAX}
-          placeholder="e.g. 3 miles, 5 sets"
-          onChange={(e) => setNote(e.target.value)}
-        />
+        <div className="relative">
+          <Input
+            id={`${id}-amount`}
+            inputMode="decimal"
+            autoComplete="off"
+            value={amountText}
+            placeholder="e.g. 3"
+            aria-invalid={amountError ? true : undefined}
+            aria-describedby={amountError ? `${id}-amount-error` : undefined}
+            onChange={(e) => setAmountText(e.target.value)}
+            className="pr-24 tabular-nums"
+          />
+          {selected?.unit && (
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+              {selected.unit}
+            </span>
+          )}
+        </div>
+        {amountError && (
+          <p id={`${id}-amount-error`} className="text-xs text-destructive">
+            {amountError}
+          </p>
+        )}
       </div>
-      {error && (
+      {serverError && (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          {serverError}
         </p>
       )}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={onDone}>
           Cancel
         </Button>
-        <Button type="submit" size="sm" disabled={typeId === null || mutation.isPending}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={typeId === null || amount === null || mutation.isPending}
+        >
           {entry ? "Save" : "Add"}
         </Button>
       </div>

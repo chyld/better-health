@@ -16,7 +16,7 @@ beforeEach(async () => {
   bob = (await t.signedInUser("bob")).cookie;
 
   aliceType = (await (
-    await t.json("/api/exercise-types", "POST", { name: "Yoga" }, alice)
+    await t.json("/api/exercise-types", "POST", { name: "Yoga", unit: "minutes" }, alice)
   ).json()) as ExerciseType;
   await t.json(
     `/api/days/${DATE}`,
@@ -25,7 +25,12 @@ beforeEach(async () => {
     alice,
   );
   const day = (await (
-    await t.json(`/api/days/${DATE}/exercises`, "POST", { exerciseTypeId: aliceType.id }, alice)
+    await t.json(
+      `/api/days/${DATE}/exercises`,
+      "POST",
+      { exerciseTypeId: aliceType.id, amount: 30 },
+      alice,
+    )
   ).json()) as DayDetail;
   aliceEntryId = day.exercises[0]?.id ?? 0;
 });
@@ -63,7 +68,7 @@ describe("writes to Alice's records are 404 and change nothing", () => {
     const res = await t.json(
       `/api/days/${DATE}/exercises`,
       "POST",
-      { exerciseTypeId: aliceType.id },
+      { exerciseTypeId: aliceType.id, amount: 1 },
       bob,
     );
     expect(res.status).toBe(404);
@@ -73,24 +78,29 @@ describe("writes to Alice's records are 404 and change nothing", () => {
     const res = await t.json(
       `/api/days/${DATE}/exercises/${aliceEntryId}`,
       "PATCH",
-      { note: "hacked" },
+      { amount: 999 },
       bob,
     );
     expect(res.status).toBe(404);
-    expect((await aliceDay()).exercises[0]?.note).toBe("");
+    expect((await aliceDay()).exercises[0]?.amount).toBe(30);
   });
 
   test("moving his own entry onto Alice's label", async () => {
     const own = (await (
-      await t.json("/api/exercise-types", "POST", { name: "Run" }, bob)
+      await t.json("/api/exercise-types", "POST", { name: "Run", unit: "miles" }, bob)
     ).json()) as ExerciseType;
     const day = (await (
-      await t.json(`/api/days/${DATE}/exercises`, "POST", { exerciseTypeId: own.id }, bob)
+      await t.json(
+        `/api/days/${DATE}/exercises`,
+        "POST",
+        { exerciseTypeId: own.id, amount: 1 },
+        bob,
+      )
     ).json()) as DayDetail;
     const res = await t.json(
       `/api/days/${DATE}/exercises/${day.exercises[0]?.id}`,
       "PATCH",
-      { exerciseTypeId: aliceType.id },
+      { exerciseTypeId: aliceType.id, amount: 1 },
       bob,
     );
     expect(res.status).toBe(404);
@@ -127,7 +137,7 @@ describe("writes to Alice's records are 404 and change nothing", () => {
   });
 
   test("Bob can use the same label name as Alice", async () => {
-    const res = await t.json("/api/exercise-types", "POST", { name: "Yoga" }, bob);
+    const res = await t.json("/api/exercise-types", "POST", { name: "Yoga", unit: "minutes" }, bob);
     expect(res.status).toBe(201);
   });
 });

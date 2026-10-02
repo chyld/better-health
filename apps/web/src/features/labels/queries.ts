@@ -29,12 +29,20 @@ export function useLabelMutations() {
   };
   return {
     create: useMutation({
-      mutationFn: (name: string) => unwrap(api["exercise-types"].$post({ json: { name } })),
+      mutationFn: (json: { name: string; unit: string }) =>
+        unwrap(api["exercise-types"].$post({ json })),
       onSuccess,
     }),
     update: useMutation({
-      mutationFn: ({ id, ...json }: { id: number; name?: string; archived?: boolean }) =>
-        unwrap(api["exercise-types"][":id"].$patch({ param: { id: String(id) }, json })),
+      mutationFn: ({
+        id,
+        ...json
+      }: {
+        id: number;
+        name?: string;
+        unit?: string;
+        archived?: boolean;
+      }) => unwrap(api["exercise-types"][":id"].$patch({ param: { id: String(id) }, json })),
       onSuccess: onSuccessWithDays,
     }),
     reorder: useMutation({

@@ -58,8 +58,9 @@ function listEntries(db: Db, userId: number, date: string): ExerciseEntry[] {
       id: exerciseEntries.id,
       exerciseTypeId: exerciseEntries.exerciseTypeId,
       name: exerciseTypes.name,
+      unit: exerciseTypes.unit,
       archivedAt: exerciseTypes.archivedAt,
-      note: exerciseEntries.note,
+      amount: exerciseEntries.amount,
       createdAt: exerciseEntries.createdAt,
     })
     .from(exerciseEntries)
