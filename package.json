@@ -13,10 +13,14 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun run test:unit && bun run test:api && bun run test:cli && bun run test:web && bun run test:e2e",
     "test:unit": "bun test --cwd packages/shared && bun test --cwd apps/api --pass-with-no-tests src/",
-    "test:api": "bun test --cwd apps/api tests/api tests/db",
+    "test:api": "bun test --cwd apps/api tests/api tests/db tests/services",
     "test:cli": "bun test --cwd apps/api --pass-with-no-tests tests/cli",
     "test:web": "echo 'no web tests yet'",
-    "test:e2e": "echo 'no e2e tests yet'"
+    "test:e2e": "echo 'no e2e tests yet'",
+    "user:create": "bun apps/api/src/cli/main.ts create",
+    "user:reset-password": "bun apps/api/src/cli/main.ts reset-password",
+    "user:list": "bun apps/api/src/cli/main.ts list",
+    "user:delete": "bun apps/api/src/cli/main.ts delete"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
