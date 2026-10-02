@@ -5,11 +5,16 @@
   "scripts": {
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@better-health/shared": "workspace:*",
+    "drizzle-orm": "^0.45.3",
     "hono": "^4.13.12",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11"
   }
 }
