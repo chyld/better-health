@@ -90,10 +90,16 @@ describe("create", () => {
     expect(err).toEqual(['User "BOB" already exists']);
   });
 
-  test("a short password exits 1 with the reason", async () => {
-    const { io, err } = fakeIO({ hidden: ["short", "short"] });
+  test("a short password is fine", async () => {
+    const { io } = fakeIO({ hidden: ["a", "a"] });
+    expect(await runCli(["create", "bob"], db, io)).toBe(0);
+    expect(await verifyCredentials(db, "bob", "a")).not.toBeNull();
+  });
+
+  test("an empty password exits 1 with the reason", async () => {
+    const { io, err } = fakeIO({ hidden: ["", ""] });
     expect(await runCli(["create", "bob"], db, io)).toBe(1);
-    expect(err).toEqual(["Password must be at least 8 characters"]);
+    expect(err).toEqual(["Password cannot be empty"]);
   });
 
   test("an invalid username exits 1", async () => {

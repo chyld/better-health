@@ -50,9 +50,14 @@ describe("createUser", () => {
     );
   });
 
-  test("rejects a short password", () => {
-    expect(createUser(db, { username: "chyld", password: "short" })).rejects.toThrow(
-      "Password must be at least 8 characters",
+  test("accepts a one-character password", async () => {
+    await createUser(db, { username: "chyld", password: "x" });
+    expect(await verifyCredentials(db, "chyld", "x")).not.toBeNull();
+  });
+
+  test("rejects an empty password", () => {
+    expect(createUser(db, { username: "chyld", password: "" })).rejects.toThrow(
+      "Password cannot be empty",
     );
   });
 });
@@ -104,9 +109,9 @@ describe("resetPassword", () => {
     expect(resetPassword(db, "ghost", "new-password")).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  test("rejects a short password without changing anything", async () => {
+  test("rejects an empty password without changing anything", async () => {
     await createUser(db, { username: "alice", password: "old-password" });
-    expect(resetPassword(db, "alice", "short")).rejects.toBeInstanceOf(ValidationError);
+    expect(resetPassword(db, "alice", "")).rejects.toBeInstanceOf(ValidationError);
     expect(await verifyCredentials(db, "alice", "old-password")).not.toBeNull();
   });
 });

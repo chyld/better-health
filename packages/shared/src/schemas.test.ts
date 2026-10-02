@@ -19,9 +19,11 @@ describe("usernameSchema", () => {
 });
 
 describe("passwordSchema", () => {
-  test("requires at least 8 characters", () => {
-    expect(passwordSchema.safeParse("1234567").success).toBe(false);
-    expect(passwordSchema.safeParse("12345678").success).toBe(true);
+  test("accepts any non-empty password", () => {
+    for (const p of ["a", "1", " ", "abc", "password"]) {
+      expect(passwordSchema.safeParse(p).success).toBe(true);
+    }
+    expect(passwordSchema.safeParse("").success).toBe(false);
   });
 
   test("rejects passwords over 256 characters", () => {

@@ -10,7 +10,7 @@ export const usernameSchema = z
 
 export const passwordSchema = z
   .string()
-  .min(8, "Password must be at least 8 characters")
+  .min(1, "Password cannot be empty")
   .max(256, "Password must be at most 256 characters");
 
 export const isoDateSchema = z.string().refine(isValidIsoDate, "Expected a date like 2026-10-02");
