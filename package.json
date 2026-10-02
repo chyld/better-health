@@ -15,12 +15,15 @@
     "test:unit": "bun test --cwd packages/shared && bun test --cwd apps/api --pass-with-no-tests src/",
     "test:api": "bun test --cwd apps/api tests/api tests/db tests/services",
     "test:cli": "bun test --cwd apps/api --pass-with-no-tests tests/cli",
-    "test:web": "echo 'no web tests yet'",
+    "test:web": "bun run --cwd apps/web test",
     "test:e2e": "echo 'no e2e tests yet'",
     "user:create": "bun apps/api/src/cli/main.ts create",
     "user:reset-password": "bun apps/api/src/cli/main.ts reset-password",
     "user:list": "bun apps/api/src/cli/main.ts list",
-    "user:delete": "bun apps/api/src/cli/main.ts delete"
+    "user:delete": "bun apps/api/src/cli/main.ts delete",
+    "build": "bun run --cwd apps/web build",
+    "dev:api": "bun run --cwd apps/api dev",
+    "dev:web": "bun run --cwd apps/web dev"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

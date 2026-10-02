@@ -17,5 +17,8 @@
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.11"
+  },
+  "exports": {
+    "./app": "./src/app.ts"
   }
 }
