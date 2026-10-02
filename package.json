@@ -24,7 +24,10 @@
     "build": "bun run --cwd apps/web build",
     "dev:api": "bun run --cwd apps/api dev",
     "dev:web": "bun run --cwd apps/web dev",
-    "test:e2e:update": "playwright test --update-snapshots"
+    "test:e2e:update": "playwright test --update-snapshots",
+    "deploy": "scripts/deploy.sh",
+    "start": "NODE_ENV=production bun apps/api/src/server.ts",
+    "db:backup": "bun apps/api/src/ops/main.ts backup"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

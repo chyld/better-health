@@ -1,0 +1,20 @@
+# systemd user service. Install with scripts/install-service.sh, which fills in the
+# real path to bun in ExecStart.
+[Unit]
+Description=Better Health
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/better-health
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=DATABASE_PATH=%h/better-health/data/better-health.db
+ExecStart=%h/.bun/bin/bun apps/api/src/server.ts
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
