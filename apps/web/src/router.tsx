@@ -13,6 +13,7 @@ import { LoginPage } from "@/features/auth/LoginPage";
 import { meQuery } from "@/features/auth/queries";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
 import { LabelsPage } from "@/features/labels/LabelsPage";
+import { NotesPage } from "@/features/notes/NotesPage";
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -95,9 +96,15 @@ const labelsRoute = createRoute({
   component: LabelsPage,
 });
 
+const notesRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/notes",
+  component: NotesPage,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  authedRoute.addChildren([indexRoute, calendarRoute, labelsRoute]),
+  authedRoute.addChildren([indexRoute, calendarRoute, labelsRoute, notesRoute]),
 ]);
 
 export function createAppRouter(options: {

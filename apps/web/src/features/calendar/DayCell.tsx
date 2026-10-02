@@ -52,7 +52,8 @@ function Values({ day }: { day: DaySummary }) {
   if (day.net !== null) {
     rows.push({
       key: "net",
-      short: "Net",
+      // Phone cells are ~47px wide; the sign on the value already says "net".
+      short: "N",
       long: "Net",
       compact: formatCompact(day.net, { signed: true }),
       full: formatNumber(day.net, { signed: true }),
@@ -72,13 +73,13 @@ function Values({ day }: { day: DaySummary }) {
         <span
           key={r.key}
           data-value={r.key}
-          className="flex justify-between gap-1 whitespace-nowrap"
+          className="flex justify-between gap-0.5 whitespace-nowrap sm:gap-1"
         >
           <span className="text-muted-foreground">
             <span className="md:hidden">{r.short}</span>
             <span className="hidden md:inline">{r.long}</span>
           </span>
-          <span>
+          <span className="shrink-0">
             <span className="md:hidden">{r.compact}</span>
             <span className="hidden md:inline">{r.full}</span>
           </span>

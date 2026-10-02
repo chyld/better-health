@@ -65,7 +65,10 @@ export function useUpdateDay(date: string) {
     onError: (_error, _patch, context) => {
       if (context?.previous) writeDay(context.previous);
     },
-    onSuccess: (day) => writeDay(day),
+    onSuccess: (day, patch) => {
+      writeDay(day);
+      if (patch.note !== undefined) void queryClient.invalidateQueries({ queryKey: ["notes"] });
+    },
   });
 }
 

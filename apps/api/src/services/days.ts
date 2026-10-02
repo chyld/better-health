@@ -1,12 +1,13 @@
 import {
   type DayDetail,
+  type DayNote,
   type DayPatch,
   type DaySummary,
   datesInMonth,
   type ExerciseEntry,
   netCalories,
 } from "@better-health/shared";
-import { and, asc, between, count, eq } from "drizzle-orm";
+import { and, asc, between, count, desc, eq, isNotNull } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { dailyLogs, exerciseEntries, exerciseTypes } from "../db/schema";
 import { type Clock, systemClock } from "../lib/clock";
@@ -128,4 +129,15 @@ export function patchDay(
       .run();
   }
   return getDay(db, userId, date);
+}
+
+/** Every day with a note, newest first. */
+export function listNotes(db: Db, userId: number): DayNote[] {
+  return db
+    .select({ date: dailyLogs.date, note: dailyLogs.note })
+    .from(dailyLogs)
+    .where(and(eq(dailyLogs.userId, userId), isNotNull(dailyLogs.note)))
+    .orderBy(desc(dailyLogs.date))
+    .all()
+    .filter((r): r is DayNote => Boolean(r.note?.trim()));
 }

@@ -145,6 +145,15 @@ function createFake() {
       const month = String(params.month);
       return HttpResponse.json({ month, days: datesInMonth(month).map(daySummary) });
     }),
+    http.get("*/api/notes", () => {
+      if (!state.user) return unauthorized();
+      return HttpResponse.json(
+        [...state.days.entries()]
+          .filter(([, d]) => d.note?.trim())
+          .sort(([a], [b]) => b.localeCompare(a))
+          .map(([date, d]) => ({ date, note: d.note })),
+      );
+    }),
     http.get("*/api/days/:date", ({ params }) => {
       if (!state.user) return unauthorized();
       return HttpResponse.json(dayDetail(String(params.date)));

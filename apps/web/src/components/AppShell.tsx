@@ -15,6 +15,9 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Button variant="ghost" size="sm" asChild>
+            <Link to="/notes">Notes</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
             <Link to="/labels">Labels</Link>
           </Button>
           <span className="hidden text-muted-foreground sm:inline">{user.username}</span>

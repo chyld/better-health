@@ -35,6 +35,11 @@ export interface DayDetail {
   exercises: ExerciseEntry[];
 }
 
+export interface DayNote {
+  date: string;
+  note: string;
+}
+
 export interface ExerciseType {
   id: number;
   name: string;
