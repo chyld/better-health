@@ -31,7 +31,7 @@ test("calendar with data: accessible and matches the snapshot", async ({ page })
   const origin = new URL(page.url()).origin;
   const label = await (
     await page.request.post("/api/exercise-types", {
-      data: { name: "Walking", unit: "miles" },
+      data: { name: "Walking", category: "cardio", unit: "miles" },
       headers: { origin },
     })
   ).json();
@@ -60,8 +60,25 @@ test("labels page is accessible", async ({ page }) => {
   await page.goto("/labels");
   const form = page.getByRole("form", { name: "Add label" });
   await form.getByLabel("Exercise").fill("Yoga");
+  await form.getByLabel("Category").fill("flexibility");
   await form.getByLabel("Unit").fill("minutes");
   await form.getByRole("button", { name: "Add" }).click();
   await expect(page.getByRole("list", { name: "Active" })).toBeVisible();
+  await expectNoA11yViolations(page);
+});
+
+test("history page is accessible", async ({ page }) => {
+  await login(page);
+  const day = await openDay(page, "2026-10-01");
+  await fillAndSave(day, "Calories in", "1850");
+  await fillAndSave(day, "Weight", "182.4");
+  await closeDay(page);
+  await page.getByRole("link", { name: "History" }).click();
+  const list = page.getByRole("list", { name: "Calories in, newest first" });
+  await expect(list.getByRole("listitem")).toHaveCount(1);
+  await expectNoA11yViolations(page);
+  await page.getByLabel("Show").selectOption({ label: "Weight" });
+  await expect(page.getByRole("list", { name: "Weight, newest first" })).toContainText("182.4");
+  await expect(page).toHaveURL(/metric=weight/);
   await expectNoA11yViolations(page);
 });

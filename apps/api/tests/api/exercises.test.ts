@@ -7,8 +7,10 @@ async function setup() {
   const { cookie } = await t.signedInUser("alice");
   const send = (method: string, path: string, body?: unknown) =>
     body === undefined ? t.request(path, { method, cookie }) : t.json(path, method, body, cookie);
-  const newType = async (name: string, unit = "miles") =>
-    (await (await send("POST", "/api/exercise-types", { name, unit })).json()) as ExerciseType;
+  const newType = async (name: string, unit = "miles", category = "cardio") =>
+    (await (
+      await send("POST", "/api/exercise-types", { category: "cardio", name, unit })
+    ).json()) as ExerciseType;
   const add = (date: string, body: unknown) => send("POST", `/api/days/${date}/exercises`, body);
   const addOk = async (date: string, body: unknown) =>
     (await (await add(date, body)).json()) as DayDetail;
@@ -26,6 +28,7 @@ describe("POST /api/days/:date/exercises", () => {
         id: expect.any(Number),
         exerciseTypeId: walking.id,
         name: "Walking",
+        category: "cardio",
         unit: "miles",
         archived: false,
         amount: 3,

@@ -68,6 +68,9 @@ export function useUpdateDay(date: string) {
     onSuccess: (day, patch) => {
       writeDay(day);
       if (patch.note !== undefined) void queryClient.invalidateQueries({ queryKey: ["notes"] });
+      if (Object.keys(patch).some((k) => k !== "note")) {
+        void queryClient.invalidateQueries({ queryKey: ["history"] });
+      }
     },
   });
 }

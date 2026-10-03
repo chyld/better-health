@@ -22,6 +22,7 @@ export const WEIGHT_MAX = 1_000;
 export const DAY_NOTE_MAX = 10_000;
 export const EXERCISE_NAME_MAX = 50;
 export const EXERCISE_UNIT_MAX = 20;
+export const EXERCISE_CATEGORY_MAX = 30;
 export const AMOUNT_MAX = 100_000;
 
 export const caloriesSchema = z
@@ -81,14 +82,23 @@ export const exerciseUnitSchema = z
   .min(1, "Unit is required")
   .max(EXERCISE_UNIT_MAX, `Unit must be at most ${EXERCISE_UNIT_MAX} characters`);
 
+/** A free-text grouping such as "cardio" or "strength". */
+export const exerciseCategorySchema = z
+  .string()
+  .trim()
+  .min(1, "Category is required")
+  .max(EXERCISE_CATEGORY_MAX, `Category must be at most ${EXERCISE_CATEGORY_MAX} characters`);
+
 export const exerciseTypeCreateSchema = z.strictObject({
   name: exerciseNameSchema,
+  category: exerciseCategorySchema,
   unit: exerciseUnitSchema,
 });
 
 export const exerciseTypePatchSchema = z
   .strictObject({
     name: exerciseNameSchema.optional(),
+    category: exerciseCategorySchema.optional(),
     unit: exerciseUnitSchema.optional(),
     archived: z.boolean().optional(),
   })

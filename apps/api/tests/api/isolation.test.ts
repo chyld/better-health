@@ -16,7 +16,12 @@ beforeEach(async () => {
   bob = (await t.signedInUser("bob")).cookie;
 
   aliceType = (await (
-    await t.json("/api/exercise-types", "POST", { name: "Yoga", unit: "minutes" }, alice)
+    await t.json(
+      "/api/exercise-types",
+      "POST",
+      { category: "cardio", name: "Yoga", unit: "minutes" },
+      alice,
+    )
   ).json()) as ExerciseType;
   await t.json(
     `/api/days/${DATE}`,
@@ -87,7 +92,12 @@ describe("writes to Alice's records are 404 and change nothing", () => {
 
   test("moving his own entry onto Alice's label", async () => {
     const own = (await (
-      await t.json("/api/exercise-types", "POST", { name: "Run", unit: "miles" }, bob)
+      await t.json(
+        "/api/exercise-types",
+        "POST",
+        { category: "cardio", name: "Run", unit: "miles" },
+        bob,
+      )
     ).json()) as ExerciseType;
     const day = (await (
       await t.json(
@@ -137,7 +147,12 @@ describe("writes to Alice's records are 404 and change nothing", () => {
   });
 
   test("Bob can use the same label name as Alice", async () => {
-    const res = await t.json("/api/exercise-types", "POST", { name: "Yoga", unit: "minutes" }, bob);
+    const res = await t.json(
+      "/api/exercise-types",
+      "POST",
+      { category: "cardio", name: "Yoga", unit: "minutes" },
+      bob,
+    );
     expect(res.status).toBe(201);
   });
 });

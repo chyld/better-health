@@ -61,6 +61,8 @@ export const exerciseTypes = sqliteTable(
     name: text("name").notNull(),
     // Empty only for labels created before units existed.
     unit: text("unit").notNull().default(""),
+    // Empty only for labels created before categories existed.
+    category: text("category").notNull().default(""),
     sortOrder: integer("sort_order").notNull(),
     archivedAt: text("archived_at"),
   },

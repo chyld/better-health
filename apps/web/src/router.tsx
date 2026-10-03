@@ -13,6 +13,7 @@ import { AdminPage } from "@/features/admin/AdminPage";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { meQuery } from "@/features/auth/queries";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
+import { HistoryPage, METRIC_IDS, type MetricId } from "@/features/history/HistoryPage";
 import { LabelsPage } from "@/features/labels/LabelsPage";
 import { NotesPage } from "@/features/notes/NotesPage";
 
@@ -103,6 +104,14 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
+const historyRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/history",
+  validateSearch: (search: Record<string, unknown>): { metric?: MetricId } =>
+    METRIC_IDS.includes(search.metric as MetricId) ? { metric: search.metric as MetricId } : {},
+  component: HistoryPage,
+});
+
 const adminRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/admin",
@@ -115,7 +124,14 @@ const adminRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  authedRoute.addChildren([indexRoute, calendarRoute, labelsRoute, notesRoute, adminRoute]),
+  authedRoute.addChildren([
+    indexRoute,
+    calendarRoute,
+    labelsRoute,
+    notesRoute,
+    historyRoute,
+    adminRoute,
+  ]),
 ]);
 
 export function createAppRouter(options: {

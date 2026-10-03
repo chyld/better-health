@@ -258,6 +258,39 @@ describe("exercise", () => {
     ).toEqual(["Walking (miles)", "Walking (minutes)"]);
   });
 
+  test("choices are grouped under their category, recency order kept", async () => {
+    fake.addType("Squats", "reps", false, "strength");
+    const walk = fake.addType("Walking", "miles", false, "cardio");
+    fake.addType("Steps", "steps", false, "");
+    fake.addType("Rowing", "minutes", false, "Cardio");
+    fake.addEntry("2026-09-20", walk.id);
+    const { form } = await openAddForm();
+    const group = within(form).getByRole("radiogroup");
+    expect(group.textContent).toBe(
+      "cardioWalking (miles)Rowing (minutes)strengthSquats (reps)No categorySteps (steps)",
+    );
+    // Headings are visual only; the radios keep their plain names.
+    expect(
+      within(form)
+        .getAllByRole("radio")
+        .map((r) => r.textContent),
+    ).toEqual(["Walking (miles)", "Rowing (minutes)", "Squats (reps)", "Steps (steps)"]);
+  });
+
+  test("without any categories there are no headings", async () => {
+    fake.addType("Steps", "steps", false, "");
+    const { form } = await openAddForm();
+    expect(within(form).getByRole("radiogroup").textContent).toBe("Steps (steps)");
+  });
+
+  test("a logged exercise shows its category", async () => {
+    const walk = fake.addType("Walking", "miles", false, "cardio");
+    fake.addEntry("2026-10-02", walk.id, 3);
+    const { panel } = await openDesktop();
+    const item = await within(panel).findByRole("listitem");
+    expect(item).toHaveTextContent("Walkingcardio – 3 miles");
+  });
+
   test("archived labels are not offered", async () => {
     fake.addType("Yoga", "minutes", true);
     fake.addType("Running", "miles");

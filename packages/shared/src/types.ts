@@ -19,6 +19,8 @@ export interface ExerciseEntry {
   id: number;
   exerciseTypeId: number;
   name: string;
+  /** Empty for labels created before categories existed. */
+  category: string;
   unit: string;
   archived: boolean;
   amount: number;
@@ -35,6 +37,15 @@ export interface DayDetail {
   exercises: ExerciseEntry[];
 }
 
+/** A day with at least one of calories in, calories out or weight; for the History page. */
+export interface HistoryDay {
+  date: string;
+  caloriesIn: number | null;
+  caloriesOut: number | null;
+  net: number | null;
+  weightLbs: number | null;
+}
+
 export interface DayNote {
   date: string;
   note: string;
@@ -43,6 +54,8 @@ export interface DayNote {
 export interface ExerciseType {
   id: number;
   name: string;
+  /** Empty only for labels created before categories existed. */
+  category: string;
   /** Empty only for labels created before units existed. */
   unit: string;
   sortOrder: number;

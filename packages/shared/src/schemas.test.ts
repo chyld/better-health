@@ -115,24 +115,31 @@ describe("exercise schemas", () => {
     expect(exerciseEntryPatchSchema.safeParse({}).success).toBe(false);
     expect(exerciseEntryPatchSchema.safeParse({ amount: 4 }).success).toBe(true);
   });
-  test("labels need a trimmed name and unit", () => {
-    expect(exerciseTypeCreateSchema.parse({ name: "  Walking ", unit: " miles " })).toEqual({
+  test("labels need a trimmed name, category and unit", () => {
+    const walking = { name: "  Walking ", category: " cardio ", unit: " miles " };
+    expect(exerciseTypeCreateSchema.parse(walking)).toEqual({
       name: "Walking",
+      category: "cardio",
       unit: "miles",
     });
-    expect(exerciseTypeCreateSchema.safeParse({ name: "Walking" }).success).toBe(false);
-    expect(exerciseTypeCreateSchema.safeParse({ name: "Walking", unit: "  " }).success).toBe(false);
-    expect(exerciseTypeCreateSchema.safeParse({ name: "   ", unit: "miles" }).success).toBe(false);
-    expect(
-      exerciseTypeCreateSchema.safeParse({ name: "x".repeat(51), unit: "miles" }).success,
-    ).toBe(false);
-    expect(
-      exerciseTypeCreateSchema.safeParse({ name: "Walking", unit: "x".repeat(21) }).success,
-    ).toBe(false);
+    const ok = { name: "Walking", category: "cardio", unit: "miles" };
+    for (const bad of [
+      { name: "Walking", category: "cardio" },
+      { name: "Walking", unit: "miles" },
+      { ...ok, unit: "  " },
+      { ...ok, name: "   " },
+      { ...ok, category: "  " },
+      { ...ok, name: "x".repeat(51) },
+      { ...ok, unit: "x".repeat(21) },
+      { ...ok, category: "x".repeat(31) },
+    ]) {
+      expect(exerciseTypeCreateSchema.safeParse(bad).success).toBe(false);
+    }
   });
   test("label patch accepts name, unit and/or archived", () => {
     expect(exerciseTypePatchSchema.safeParse({ archived: true }).success).toBe(true);
     expect(exerciseTypePatchSchema.safeParse({ unit: "km" }).success).toBe(true);
+    expect(exerciseTypePatchSchema.safeParse({ category: "cardio" }).success).toBe(true);
     expect(exerciseTypePatchSchema.safeParse({}).success).toBe(false);
   });
   test("order rejects empty and duplicate ids", () => {

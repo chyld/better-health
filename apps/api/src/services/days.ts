@@ -5,9 +5,10 @@ import {
   type DaySummary,
   datesInMonth,
   type ExerciseEntry,
+  type HistoryDay,
   netCalories,
 } from "@better-health/shared";
-import { and, asc, between, count, desc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, between, count, desc, eq, isNotNull, or } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { dailyLogs, exerciseEntries, exerciseTypes } from "../db/schema";
 import { type Clock, systemClock } from "../lib/clock";
@@ -59,6 +60,7 @@ function listEntries(db: Db, userId: number, date: string): ExerciseEntry[] {
       id: exerciseEntries.id,
       exerciseTypeId: exerciseEntries.exerciseTypeId,
       name: exerciseTypes.name,
+      category: exerciseTypes.category,
       unit: exerciseTypes.unit,
       archivedAt: exerciseTypes.archivedAt,
       amount: exerciseEntries.amount,
@@ -140,4 +142,29 @@ export function listNotes(db: Db, userId: number): DayNote[] {
     .orderBy(desc(dailyLogs.date))
     .all()
     .filter((r): r is DayNote => Boolean(r.note?.trim()));
+}
+
+/** Every day with calories in, calories out or weight logged, newest first. */
+export function listHistory(db: Db, userId: number): HistoryDay[] {
+  return db
+    .select({
+      date: dailyLogs.date,
+      caloriesIn: dailyLogs.caloriesIn,
+      caloriesOut: dailyLogs.caloriesOut,
+      weightLbs: dailyLogs.weightLbs,
+    })
+    .from(dailyLogs)
+    .where(
+      and(
+        eq(dailyLogs.userId, userId),
+        or(
+          isNotNull(dailyLogs.caloriesIn),
+          isNotNull(dailyLogs.caloriesOut),
+          isNotNull(dailyLogs.weightLbs),
+        ),
+      ),
+    )
+    .orderBy(desc(dailyLogs.date))
+    .all()
+    .map((r) => ({ ...r, net: netCalories(r.caloriesIn, r.caloriesOut) }));
 }

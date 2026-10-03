@@ -1,4 +1,5 @@
 import {
+  EXERCISE_CATEGORY_MAX,
   EXERCISE_NAME_MAX,
   EXERCISE_UNIT_MAX,
   type ExerciseType,
@@ -7,14 +8,14 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, ArrowUp, Pencil, Tags } from "lucide-react";
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { type ChangeEvent, type FormEvent, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api";
 import { labelTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
-import { exerciseTypesQuery, useLabelMutations } from "./queries";
+import { categoriesOf, exerciseTypesQuery, useLabelMutations } from "./queries";
 
 const errorText = (e: unknown) =>
   e instanceof ApiError ? e.message : e ? "Something went wrong" : null;
@@ -25,6 +26,8 @@ export function LabelsPage() {
   const active = data?.filter((t) => !t.archived) ?? [];
   const archived = data?.filter((t) => t.archived) ?? [];
   const error = errorText(mutations.update.error ?? mutations.reorder.error);
+  // Suggestions for the category fields, from the categories already in use.
+  const categoryList = useId();
 
   function move(index: number, delta: -1 | 1) {
     const ids = active.map((t) => t.id);
@@ -49,7 +52,13 @@ export function LabelsPage() {
         <h1 className="text-2xl font-extrabold tracking-tight">Exercise labels</h1>
       </div>
 
-      <AddLabelForm />
+      <datalist id={categoryList}>
+        {categoriesOf(data ?? []).map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+
+      <AddLabelForm categoryList={categoryList} />
 
       {isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
       {isError && (
@@ -79,7 +88,7 @@ export function LabelsPage() {
           ) : (
             <ul aria-labelledby="active-heading" className="space-y-2">
               {active.map((t, i) => (
-                <LabelRow key={t.id} label={t}>
+                <LabelRow key={t.id} label={t} categoryList={categoryList}>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -126,7 +135,7 @@ export function LabelsPage() {
           </p>
           <ul aria-labelledby="archived-heading" className="space-y-2">
             {archived.map((t) => (
-              <LabelRow key={t.id} label={t}>
+              <LabelRow key={t.id} label={t} categoryList={categoryList}>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -144,34 +153,61 @@ export function LabelsPage() {
   );
 }
 
-/** Name and unit inputs side by side, shared by the add and edit forms. */
-function NameUnitFields({
-  name,
-  unit,
-  onName,
-  onUnit,
+interface LabelFields {
+  name: string;
+  category: string;
+  unit: string;
+}
+
+const trimmed = (f: LabelFields): LabelFields => ({
+  name: f.name.trim(),
+  category: f.category.trim(),
+  unit: f.unit.trim(),
+});
+const complete = (f: LabelFields) => Boolean(f.name.trim() && f.category.trim() && f.unit.trim());
+
+/** Name, category and unit inputs, shared by the add and edit forms. */
+function LabelInputs({
+  value,
+  onChange,
+  categoryList,
   autoFocus,
 }: {
-  name: string;
-  unit: string;
-  onName: (v: string) => void;
-  onUnit: (v: string) => void;
+  value: LabelFields;
+  onChange: (next: LabelFields) => void;
+  categoryList: string;
   autoFocus?: boolean;
 }) {
   const id = useId();
+  const set = (key: keyof LabelFields) => (e: ChangeEvent<HTMLInputElement>) =>
+    onChange({ ...value, [key]: e.target.value });
   return (
-    <div className="grid flex-1 grid-cols-[3fr_2fr] gap-2">
-      <div className="space-y-1">
+    <div className="grid min-w-0 flex-1 basis-full grid-cols-2 gap-2 sm:basis-0 sm:grid-cols-[3fr_2fr_2fr]">
+      <div className="col-span-2 space-y-1 sm:col-span-1">
         <Label htmlFor={`${id}-name`} className="text-xs">
           Exercise
         </Label>
         <Input
           id={`${id}-name`}
           placeholder="e.g. Walking"
-          value={name}
+          value={value.name}
           maxLength={EXERCISE_NAME_MAX}
           autoFocus={autoFocus}
-          onChange={(e) => onName(e.target.value)}
+          onChange={set("name")}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`${id}-category`} className="text-xs">
+          Category
+        </Label>
+        <Input
+          id={`${id}-category`}
+          placeholder="e.g. cardio"
+          list={categoryList}
+          autoComplete="off"
+          value={value.category}
+          maxLength={EXERCISE_CATEGORY_MAX}
+          onChange={set("category")}
         />
       </div>
       <div className="space-y-1">
@@ -181,33 +217,26 @@ function NameUnitFields({
         <Input
           id={`${id}-unit`}
           placeholder="e.g. miles"
-          value={unit}
+          value={value.unit}
           maxLength={EXERCISE_UNIT_MAX}
-          onChange={(e) => onUnit(e.target.value)}
+          onChange={set("unit")}
         />
       </div>
     </div>
   );
 }
 
-function AddLabelForm() {
+const EMPTY: LabelFields = { name: "", category: "", unit: "" };
+
+function AddLabelForm({ categoryList }: { categoryList: string }) {
   const { create } = useLabelMutations();
-  const [name, setName] = useState("");
-  const [unit, setUnit] = useState("");
-  const ready = name.trim() !== "" && unit.trim() !== "";
+  const [fields, setFields] = useState(EMPTY);
+  const ready = complete(fields);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!ready) return;
-    create.mutate(
-      { name: name.trim(), unit: unit.trim() },
-      {
-        onSuccess: () => {
-          setName("");
-          setUnit("");
-        },
-      },
-    );
+    create.mutate(trimmed(fields), { onSuccess: () => setFields(EMPTY) });
   }
 
   return (
@@ -216,20 +245,16 @@ function AddLabelForm() {
       aria-label="Add label"
       className="space-y-1 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-violet-100"
     >
-      <div className="flex items-end gap-2">
-        <NameUnitFields
-          name={name}
-          unit={unit}
-          onName={(v) => {
-            setName(v);
-            create.reset();
-          }}
-          onUnit={(v) => {
-            setUnit(v);
+      <div className="flex flex-wrap items-end gap-2">
+        <LabelInputs
+          value={fields}
+          categoryList={categoryList}
+          onChange={(next) => {
+            setFields(next);
             create.reset();
           }}
         />
-        <Button type="submit" disabled={!ready || create.isPending}>
+        <Button type="submit" className="w-full sm:w-auto" disabled={!ready || create.isPending}>
           Add
         </Button>
       </div>
@@ -242,24 +267,33 @@ function AddLabelForm() {
   );
 }
 
-function LabelRow({ label, children }: { label: ExerciseType; children: ReactNode }) {
+function LabelRow({
+  label,
+  categoryList,
+  children,
+}: {
+  label: ExerciseType;
+  categoryList: string;
+  children: ReactNode;
+}) {
   const { update } = useLabelMutations();
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(label.name);
-  const [unit, setUnit] = useState(label.unit);
+  const saved: LabelFields = { name: label.name, category: label.category, unit: label.unit };
+  const [fields, setFields] = useState(saved);
 
   function cancel() {
     setEditing(false);
-    setName(label.name);
-    setUnit(label.unit);
+    setFields(saved);
     update.reset();
   }
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    const next = { name: name.trim(), unit: unit.trim() };
-    if (!next.name || !next.unit) return;
-    if (next.name === label.name && next.unit === label.unit) return cancel();
+    if (!complete(fields)) return;
+    const next = trimmed(fields);
+    if (next.name === label.name && next.category === label.category && next.unit === label.unit) {
+      return cancel();
+    }
     update.mutate({ id: label.id, ...next }, { onSuccess: () => setEditing(false) });
   }
 
@@ -270,19 +304,17 @@ function LabelRow({ label, children }: { label: ExerciseType; children: ReactNod
           onSubmit={submit}
           onKeyDown={(e) => e.key === "Escape" && cancel()}
           aria-label={`Edit ${labelText(label)}`}
-          className="flex items-end gap-2"
+          className="flex flex-wrap items-end gap-2"
         >
-          <NameUnitFields name={name} unit={unit} onName={setName} onUnit={setUnit} autoFocus />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={!name.trim() || !unit.trim() || update.isPending}
-          >
-            Save
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={cancel}>
-            Cancel
-          </Button>
+          <LabelInputs value={fields} onChange={setFields} categoryList={categoryList} autoFocus />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={!complete(fields) || update.isPending}>
+              Save
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={cancel}>
+              Cancel
+            </Button>
+          </div>
         </form>
         {update.error && (
           <p role="alert" className="text-sm text-destructive">
@@ -307,8 +339,13 @@ function LabelRow({ label, children }: { label: ExerciseType; children: ReactNod
           label.archived ? "bg-slate-300" : labelTone(label.id).dot,
         )}
       />
-      <span className="min-w-0 flex-1 truncate">
+      <span className="min-w-0 flex-1 break-words">
         <span className="font-medium">{label.name}</span>
+        {label.category ? (
+          <span className="text-muted-foreground"> · {label.category}</span>
+        ) : (
+          <span className="text-destructive"> · no category, edit to add one</span>
+        )}
         {label.unit ? (
           <span className="text-muted-foreground"> · {label.unit}</span>
         ) : (

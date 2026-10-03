@@ -67,6 +67,7 @@ export function listExerciseTypes(
     .select({
       id: exerciseTypes.id,
       name: exerciseTypes.name,
+      category: exerciseTypes.category,
       unit: exerciseTypes.unit,
       sortOrder: exerciseTypes.sortOrder,
       archivedAt: exerciseTypes.archivedAt,
@@ -81,6 +82,7 @@ export function listExerciseTypes(
     .map((r) => ({
       id: r.id,
       name: r.name,
+      category: r.category,
       unit: r.unit,
       sortOrder: r.sortOrder,
       archived: r.archivedAt !== null,
@@ -97,7 +99,7 @@ function toType(db: Db, userId: number, id: number): ExerciseType {
 export function createExerciseType(
   db: Db,
   userId: number,
-  { name, unit }: { name: string; unit: string },
+  { name, category, unit }: { name: string; category: string; unit: string },
 ): ExerciseType {
   const existing = pairTaken(db, userId, name, unit);
   if (existing) throw conflict(existing);
@@ -108,7 +110,7 @@ export function createExerciseType(
     .get() ?? { next: 0 };
   const row = db
     .insert(exerciseTypes)
-    .values({ userId, name, unit, sortOrder: next })
+    .values({ userId, name, category, unit, sortOrder: next })
     .returning()
     .get();
   return toType(db, userId, row.id);
@@ -130,6 +132,9 @@ export function updateExerciseType(
     if (existing) throw conflict(existing);
     changes.name = name;
     changes.unit = unit;
+  }
+  if (patch.category !== undefined && patch.category !== row.category) {
+    changes.category = patch.category;
   }
   if (patch.archived !== undefined && patch.archived !== (row.archivedAt !== null)) {
     changes.archivedAt = patch.archived ? clock.now().toISOString() : null;

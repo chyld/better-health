@@ -14,7 +14,7 @@ import { z } from "zod";
 import type { AppEnv, Deps } from "../context";
 import { validate } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
-import { getDay, getMonth, listNotes, patchDay } from "../services/days";
+import { getDay, getMonth, listHistory, listNotes, patchDay } from "../services/days";
 import {
   createExerciseType,
   listExerciseTypes,
@@ -38,7 +38,9 @@ export function dataRoutes(deps: Deps) {
     .use("/days/*", auth)
     .use("/exercise-types/*", auth)
     .use("/notes", auth)
+    .use("/history", auth)
     .get("/notes", (c) => c.json(listNotes(db, c.get("user").id), 200))
+    .get("/history", (c) => c.json(listHistory(db, c.get("user").id), 200))
     .get("/months/:month", validate("param", monthParams), (c) => {
       const { month } = c.req.valid("param");
       const body: MonthResponse = { month, days: getMonth(db, c.get("user").id, month) };

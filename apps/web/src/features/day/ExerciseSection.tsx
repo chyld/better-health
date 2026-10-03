@@ -12,7 +12,7 @@ import { Dumbbell, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { byRecentUse, exerciseTypesQuery } from "@/features/labels/queries";
+import { byRecentUse, exerciseTypesQuery, groupByCategory } from "@/features/labels/queries";
 import { ApiError } from "@/lib/api";
 import { labelTone, metricTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
@@ -90,6 +90,11 @@ export function ExerciseSection({
               />
               <span className="min-w-0 flex-1">
                 <span className="font-medium">{entry.name}</span>
+                {entry.category && (
+                  <span className="mx-1.5 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                    {entry.category}
+                  </span>
+                )}
                 {entry.archived && <span className="text-muted-foreground"> (archived)</span>}
                 <span className="text-muted-foreground">
                   {" – "}
@@ -166,6 +171,7 @@ function ExerciseForm({
     choices.unshift({
       id: entry.exerciseTypeId,
       name: entry.name,
+      category: entry.category,
       unit: entry.unit,
       sortOrder: -1,
       archived: true,
@@ -173,6 +179,9 @@ function ExerciseForm({
     });
   }
   const selected = choices.find((t) => t.id === typeId);
+  const groups = groupByCategory(choices);
+  // Headings only help once at least one label has a category.
+  const showHeadings = groups.some((g) => g.category);
 
   const trimmed = amountText.trim();
   const parsed = /^\d+(\.\d+)?$/.test(trimmed) ? amountSchema.safeParse(Number(trimmed)) : null;
@@ -224,23 +233,35 @@ function ExerciseForm({
     >
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Pick an exercise</legend>
-        <div role="radiogroup" className="flex flex-wrap gap-1.5">
-          {choices.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="radio"
-              aria-checked={typeId === t.id}
-              onClick={() => pick(t.id)}
-              className={cn(
-                "rounded-full px-4 py-2.5 text-base font-semibold ring-1 transition-all lg:px-3 lg:py-1.5 lg:text-sm",
-                typeId === t.id
-                  ? `${labelTone(t.id).on} text-white shadow-md ring-transparent motion-safe:scale-105`
-                  : `${labelTone(t.id).chip} hover:brightness-95`,
+        <div role="radiogroup" className="space-y-2.5">
+          {groups.map((group) => (
+            <div key={group.category} className="flex flex-wrap gap-1.5">
+              {showHeadings && (
+                <span
+                  aria-hidden="true"
+                  className="w-full text-xs font-bold tracking-wide text-sky-900 uppercase"
+                >
+                  {group.category || "No category"}
+                </span>
               )}
-            >
-              {labelText(t)}
-            </button>
+              {group.types.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={typeId === t.id}
+                  onClick={() => pick(t.id)}
+                  className={cn(
+                    "rounded-full px-4 py-2.5 text-base font-semibold ring-1 transition-all lg:px-3 lg:py-1.5 lg:text-sm",
+                    typeId === t.id
+                      ? `${labelTone(t.id).on} text-white shadow-md ring-transparent motion-safe:scale-105`
+                      : `${labelTone(t.id).chip} hover:brightness-95`,
+                  )}
+                >
+                  {labelText(t)}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       </fieldset>

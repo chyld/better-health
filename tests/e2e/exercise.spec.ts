@@ -6,13 +6,14 @@ async function createLabels(page: Page, labels: [name: string, unit: string][]) 
   const form = page.getByRole("form", { name: "Add label" });
   for (const [name, unit] of labels) {
     await form.getByLabel("Exercise").fill(name);
+    await form.getByLabel("Category").fill("cardio");
     await form.getByLabel("Unit").fill(unit);
     await form.getByRole("button", { name: "Add" }).click();
     await expect(
       page
         .getByRole("list", { name: "Active" })
         .getByRole("listitem")
-        .filter({ hasText: `${name} · ${unit}` }),
+        .filter({ hasText: `${name} · cardio · ${unit}` }),
     ).toBeVisible();
   }
   await page.getByRole("link", { name: "Back to calendar" }).click();
@@ -103,12 +104,12 @@ test("labels can be edited and reordered", async ({ page }) => {
   await page.getByRole("button", { name: "Move Walking (miles) up" }).click();
   await page.getByRole("button", { name: "Move Walking (miles) up" }).click();
   await expect(page.getByRole("list", { name: "Active" }).getByRole("listitem")).toHaveText([
-    /Walking · miles/,
-    /A · reps/,
-    /B · reps/,
+    /Walking · cardio · miles/,
+    /A · cardio · reps/,
+    /B · cardio · reps/,
   ]);
   await page.reload();
   await expect(page.getByRole("list", { name: "Active" }).getByRole("listitem").first()).toHaveText(
-    /Walking · miles/,
+    /Walking · cardio · miles/,
   );
 });

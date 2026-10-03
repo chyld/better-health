@@ -156,7 +156,12 @@ describe("GET /api/months/:month", () => {
       note: "hi",
     });
     const type = (await (
-      await s.json("/api/exercise-types", "POST", { name: "Walking", unit: "miles" }, s.cookie)
+      await s.json(
+        "/api/exercise-types",
+        "POST",
+        { category: "cardio", name: "Walking", unit: "miles" },
+        s.cookie,
+      )
     ).json()) as { id: number };
     for (const amount of [3, 1]) {
       await s.json(

@@ -25,6 +25,7 @@ interface EntryRow {
 interface TypeRow {
   id: number;
   name: string;
+  category: string;
   unit: string;
   sortOrder: number;
   archived: boolean;
@@ -64,6 +65,7 @@ function createFake() {
             id: e.id,
             exerciseTypeId: e.exerciseTypeId,
             name: t?.name ?? "?",
+            category: t?.category ?? "",
             unit: t?.unit ?? "",
             archived: t?.archived ?? false,
             amount: e.amount,
@@ -160,6 +162,20 @@ function createFake() {
       const month = String(params.month);
       return HttpResponse.json({ month, days: datesInMonth(month).map(daySummary) });
     }),
+    http.get("*/api/history", () => {
+      if (!state.user) return unauthorized();
+      const days = [...state.days.entries()]
+        .filter(([, d]) => d.caloriesIn !== null || d.caloriesOut !== null || d.weightLbs !== null)
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([date, d]) => ({
+          date,
+          caloriesIn: d.caloriesIn,
+          caloriesOut: d.caloriesOut,
+          net: netCalories(d.caloriesIn, d.caloriesOut),
+          weightLbs: d.weightLbs,
+        }));
+      return HttpResponse.json(days);
+    }),
     http.get("*/api/notes", () => {
       if (!state.user) return unauthorized();
       return HttpResponse.json(
@@ -229,8 +245,13 @@ function createFake() {
     }),
     http.post("*/api/exercise-types", async ({ request }) => {
       if (!state.user) return unauthorized();
-      const body = (await record(request, "/api/exercise-types")) as { name: string; unit: string };
+      const body = (await record(request, "/api/exercise-types")) as {
+        name: string;
+        category: string;
+        unit: string;
+      };
       const name = body.name.trim();
+      const category = body.category.trim();
       const unit = body.unit.trim();
       const same = (t: TypeRow) =>
         t.name.toLowerCase() === name.toLowerCase() && t.unit.toLowerCase() === unit.toLowerCase();
@@ -243,6 +264,7 @@ function createFake() {
       const row = {
         id: state.nextId++,
         name,
+        category,
         unit,
         sortOrder: state.types.length,
         archived: false,
@@ -283,8 +305,15 @@ function createFake() {
     setDay(date: string, values: Partial<DayRow>) {
       state.days.set(date, { ...(state.days.get(date) ?? emptyDay()), ...values });
     },
-    addType(name: string, unit = "reps", archived = false) {
-      const row = { id: state.nextId++, name, unit, sortOrder: state.types.length, archived };
+    addType(name: string, unit = "reps", archived = false, category = "cardio") {
+      const row = {
+        id: state.nextId++,
+        name,
+        category,
+        unit,
+        sortOrder: state.types.length,
+        archived,
+      };
       state.types.push(row);
       return row;
     },

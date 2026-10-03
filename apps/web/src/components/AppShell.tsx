@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { HeartPulse, LogOut, NotebookPen, ShieldCheck, Tags } from "lucide-react";
+import { HeartPulse, History, LogOut, NotebookPen, ShieldCheck, Tags } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { CurrentUser } from "@/features/auth/queries";
@@ -26,6 +26,10 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           <Link to="/notes" className={navLink} activeProps={{ className: "bg-violet-100" }}>
             <NotebookPen className="size-4" aria-hidden="true" />
             <span className="sr-only sm:not-sr-only">Notes</span>
+          </Link>
+          <Link to="/history" className={navLink} activeProps={{ className: "bg-violet-100" }}>
+            <History className="size-4" aria-hidden="true" />
+            <span className="sr-only sm:not-sr-only">History</span>
           </Link>
           <Link to="/labels" className={navLink} activeProps={{ className: "bg-violet-100" }}>
             <Tags className="size-4" aria-hidden="true" />
