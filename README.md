@@ -59,18 +59,33 @@ Admins get an **Admin** page in the header with a button that downloads a consis
 
 ## Deploying to the homelab
 
-One-time setup, on the homelab, with the repo cloned to `~/better-health`:
+### Prerequisites
+
+- Linux with systemd, and a user with `sudo`
+- [Bun](https://bun.sh) (developed on 1.4), `git` and `curl`
+- [Tailscale](https://tailscale.com), installed and signed in (`sudo tailscale up`)
+
+### One-time setup
+
+On the homelab, as the user that will run the app:
 
 ```sh
+git clone https://github.com/chyld/better-health.git ~/better-health   # must be this path
+cd ~/better-health
 bun install
-bunx playwright install chromium   # the deploy runs the full suite first
+bunx playwright install --with-deps chromium   # the deploy runs the full suite, browser tests included
 bun run user:create <username>
-scripts/install-service.sh         # systemd user service + `tailscale serve` HTTPS
+scripts/install-service.sh                     # systemd user service + `tailscale serve` HTTPS
+bun run deploy                                 # first deploy: builds and starts the app
+bun run user:admin <username>                  # optional: lets this user download the database
 ```
 
-Then, for every release:
+`--with-deps` installs Chromium's system libraries with `sudo` (Debian/Ubuntu); on other distributions, drop it and install them with the package manager if the browser tests fail to launch.
+
+### Every release
 
 ```sh
+cd ~/better-health
 bun run deploy
 ```
 
@@ -78,4 +93,23 @@ The deploy pulls `main`, installs, runs the full test suite, builds, backs up th
 
 The app listens on `127.0.0.1:3000` only; it is reachable at `https://<machine>.<tailnet>.ts.net` through `tailscale serve`, which also provides the HTTPS the PWA install needs.
 
-Logs: `journalctl --user -u better-health -f`
+### Running it
+
+```sh
+systemctl --user status better-health
+systemctl --user restart better-health
+journalctl --user -u better-health -f    # logs
+```
+
+The database is `data/better-health.db`. `bun run db:backup` takes a copy into `data/backups/` at any time, and admins can download one from the Admin page. Both live on the same disk, so keep a copy somewhere else too.
+
+### Restoring a backup
+
+```sh
+systemctl --user stop better-health
+cp data/backups/better-health-<stamp>.db data/better-health.db
+rm -f data/better-health.db-wal data/better-health.db-shm
+systemctl --user start better-health
+```
+
+A backup from an older release is fine: pending migrations run when the app starts.
