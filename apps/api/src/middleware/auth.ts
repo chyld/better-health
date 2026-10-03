@@ -31,3 +31,11 @@ export function requireAuth(deps: Deps) {
     await next();
   });
 }
+
+/** After requireAuth: only admins get through. */
+export const requireAdmin = createMiddleware<AppEnv>(async (c, next) => {
+  if (!c.get("user").isAdmin) {
+    return c.json({ error: { code: "forbidden", message: "Admins only" } }, 403);
+  }
+  await next();
+});

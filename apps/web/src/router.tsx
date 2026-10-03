@@ -9,6 +9,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
+import { AdminPage } from "@/features/admin/AdminPage";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { meQuery } from "@/features/auth/queries";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
@@ -102,9 +103,19 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
+const adminRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/admin",
+  // Non-admins never see the page; the API refuses them too.
+  beforeLoad: ({ context }) => {
+    if (!context.user.isAdmin) throw redirect({ to: "/" });
+  },
+  component: AdminPage,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  authedRoute.addChildren([indexRoute, calendarRoute, labelsRoute, notesRoute]),
+  authedRoute.addChildren([indexRoute, calendarRoute, labelsRoute, notesRoute, adminRoute]),
 ]);
 
 export function createAppRouter(options: {

@@ -34,7 +34,7 @@ const PASSWORD = "password123";
 
 function createFake() {
   const state = {
-    user: null as { id: number; username: string } | null,
+    user: null as { id: number; username: string; isAdmin: boolean } | null,
     days: new Map<string, DayRow>(),
     entries: [] as EntryRow[],
     types: [] as TypeRow[],
@@ -130,7 +130,7 @@ function createFake() {
           { status: 401 },
         );
       }
-      state.user = { id: 1, username: body.username };
+      state.user = { id: 1, username: body.username, isAdmin: false };
       return HttpResponse.json({ user: state.user });
     }),
     http.post("*/api/auth/logout", () => {
@@ -140,6 +140,21 @@ function createFake() {
     http.get("*/api/auth/me", () =>
       state.user ? HttpResponse.json({ user: state.user }) : unauthorized(),
     ),
+    http.get("*/api/admin/backup", () => {
+      if (!state.user) return unauthorized();
+      if (!state.user.isAdmin) {
+        return HttpResponse.json(
+          { error: { code: "forbidden", message: "Admins only" } },
+          { status: 403 },
+        );
+      }
+      return new HttpResponse(new Uint8Array(2048), {
+        headers: {
+          "content-type": "application/vnd.sqlite3",
+          "content-disposition": 'attachment; filename="better-health-2026-10-02T12-00-00.db"',
+        },
+      });
+    }),
     http.get("*/api/months/:month", ({ params }) => {
       if (!state.user) return unauthorized();
       const month = String(params.month);
@@ -262,8 +277,8 @@ function createFake() {
     state,
     handlers,
     PASSWORD,
-    signIn(username = "alice") {
-      state.user = { id: 1, username };
+    signIn(username = "alice", { admin = false } = {}) {
+      state.user = { id: 1, username, isAdmin: admin };
     },
     setDay(date: string, values: Partial<DayRow>) {
       state.days.set(date, { ...(state.days.get(date) ?? emptyDay()), ...values });

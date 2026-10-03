@@ -45,6 +45,7 @@ export function validateSession(db: Db, token: string, clock: Clock): ValidSessi
       id: users.id,
       username: users.username,
       createdAt: users.createdAt,
+      isAdmin: users.isAdmin,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
@@ -52,7 +53,12 @@ export function validateSession(db: Db, token: string, clock: Clock): ValidSessi
     .get();
   if (!row) return null;
 
-  const user = { id: row.id, username: row.username, createdAt: row.createdAt };
+  const user = {
+    id: row.id,
+    username: row.username,
+    createdAt: row.createdAt,
+    isAdmin: row.isAdmin,
+  };
   const fullExpiry = now.getTime() + SESSION_TTL_MS;
   if (fullExpiry - Date.parse(row.expiresAt) < SESSION_RENEW_INTERVAL_MS) {
     return { user, renewedUntil: null };

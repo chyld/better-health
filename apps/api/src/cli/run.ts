@@ -1,6 +1,6 @@
 import type { Db } from "../db/client";
 import { AppError } from "../lib/errors";
-import { createUser, deleteUser, listUsers, resetPassword } from "../services/users";
+import { createUser, deleteUser, listUsers, resetPassword, setAdmin } from "../services/users";
 
 export interface CliIO {
   out(line: string): void;
@@ -16,7 +16,8 @@ const USAGE = `Usage:
   user:create <username> [--password-stdin]
   user:reset-password <username> [--password-stdin]
   user:list
-  user:delete <username> [--yes]`;
+  user:delete <username> [--yes]
+  user:admin <username> [--revoke]`;
 
 class UsageError extends Error {}
 
@@ -65,6 +66,7 @@ const FLAGS: Record<string, string[]> = {
   "reset-password": ["--password-stdin"],
   list: [],
   delete: ["--yes"],
+  admin: ["--revoke"],
 };
 
 export async function runCli(argv: readonly string[], db: Db, io: CliIO): Promise<number> {
@@ -92,7 +94,9 @@ export async function runCli(argv: readonly string[], db: Db, io: CliIO): Promis
         if (parsed.positionals.length > 0) throw new UsageError("user:list takes no arguments.");
         const users = listUsers(db);
         if (users.length === 0) io.out("No users.");
-        for (const u of users) io.out(`${u.username}\t${u.createdAt}`);
+        for (const u of users) {
+          io.out(`${u.username}\t${u.createdAt}${u.isAdmin ? "\tadmin" : ""}`);
+        }
         return 0;
       }
       case "delete": {
@@ -108,6 +112,17 @@ export async function runCli(argv: readonly string[], db: Db, io: CliIO): Promis
         }
         deleteUser(db, username);
         io.out(`Deleted user "${username}".`);
+        return 0;
+      }
+      case "admin": {
+        const username = oneUsername(parsed);
+        const revoke = parsed.flags.has("--revoke");
+        const user = setAdmin(db, username, !revoke);
+        io.out(
+          revoke
+            ? `"${user.username}" is no longer an admin.`
+            : `"${user.username}" is now an admin and can download the database.`,
+        );
         return 0;
       }
     }

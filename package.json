@@ -21,6 +21,7 @@
     "user:reset-password": "bun apps/api/src/cli/main.ts reset-password",
     "user:list": "bun apps/api/src/cli/main.ts list",
     "user:delete": "bun apps/api/src/cli/main.ts delete",
+    "user:admin": "bun apps/api/src/cli/main.ts admin",
     "build": "bun run --cwd apps/web build",
     "dev:api": "bun run --cwd apps/api dev",
     "dev:web": "bun run --cwd apps/web dev",

@@ -6,6 +6,7 @@ import type { Db } from "./db/client";
 import { type Clock, systemClock } from "./lib/clock";
 import { AppError } from "./lib/errors";
 import { FailureLimiter } from "./lib/rate-limit";
+import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { dataRoutes } from "./routes/data";
 import { testSupportRoutes } from "./routes/test-support";
@@ -33,7 +34,8 @@ export function createApp(options: AppOptions) {
     .use(csrf())
     .get("/health", (c) => c.json({ status: "ok" }, 200))
     .route("/auth", authRoutes(deps))
-    .route("/", dataRoutes(deps));
+    .route("/", dataRoutes(deps))
+    .route("/admin", adminRoutes(deps));
 
   if (options.testSupport) app.route("/test", testSupportRoutes(deps));
 

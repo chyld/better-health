@@ -26,3 +26,20 @@ describe("POST /api/test/reset", () => {
     expect(db.query.dailyLogs.findMany().sync()).toEqual([]);
   });
 });
+
+describe("POST /api/test/admin", () => {
+  test("makes a user an admin, only when test support is enabled", async () => {
+    const db = createTestDb();
+    makeUser(db, { username: "alice" });
+    const request = (app: ReturnType<typeof createApp>) =>
+      app.request("/api/test/admin", {
+        method: "POST",
+        headers: { origin: "http://localhost", "content-type": "application/json" },
+        body: JSON.stringify({ username: "alice" }),
+      });
+    expect((await request(createApp({ db }))).status).toBe(404);
+    expect(listUsers(db)[0]?.isAdmin).toBe(false);
+    expect((await request(createApp({ db, testSupport: true }))).status).toBe(204);
+    expect(listUsers(db)[0]?.isAdmin).toBe(true);
+  });
+});

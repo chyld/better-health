@@ -35,6 +35,7 @@ describe("validateSession", () => {
       id: user.id,
       username: "alice",
       createdAt: user.createdAt,
+      isAdmin: false,
     });
   });
 

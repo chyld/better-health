@@ -26,7 +26,12 @@ describe("createUser", () => {
   test("stores a hashed password and returns public fields only", async () => {
     const clock = fixedClock("2026-10-02T08:00:00.000Z");
     const user = await createUser(db, { username: "chyld", password: "password123" }, clock);
-    expect(user).toEqual({ id: user.id, username: "chyld", createdAt: "2026-10-02T08:00:00.000Z" });
+    expect(user).toEqual({
+      id: user.id,
+      username: "chyld",
+      createdAt: "2026-10-02T08:00:00.000Z",
+      isAdmin: false,
+    });
     expect(user).not.toHaveProperty("passwordHash");
     const row = db.select().from(users).get();
     expect(row?.passwordHash.startsWith("$argon2id$")).toBe(true);

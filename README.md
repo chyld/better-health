@@ -52,7 +52,10 @@ bun run user:create <username>          # prompts for a password (or --password-
 bun run user:reset-password <username>  # also signs the user out everywhere
 bun run user:list
 bun run user:delete <username>          # asks for confirmation (or --yes)
+bun run user:admin <username>           # can download the database (--revoke to undo)
 ```
+
+Admins get an **Admin** page in the header with a button that downloads a consistent copy of the whole database (all users' data and password hashes). Nobody is an admin until granted here.
 
 ## Deploying to the homelab
 

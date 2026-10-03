@@ -8,7 +8,7 @@ import { ConflictError, NotFoundError, ValidationError } from "../lib/errors";
 import { hashPassword, verifyPassword } from "../lib/password";
 
 export type User = typeof users.$inferSelect;
-export type PublicUser = Pick<User, "id" | "username" | "createdAt">;
+export type PublicUser = Pick<User, "id" | "username" | "createdAt" | "isAdmin">;
 
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
@@ -17,7 +17,7 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function toPublic(user: User): PublicUser {
-  return { id: user.id, username: user.username, createdAt: user.createdAt };
+  return { id: user.id, username: user.username, createdAt: user.createdAt, isAdmin: user.isAdmin };
 }
 
 export function findUserByUsername(db: Db, username: string): User | undefined {
@@ -68,6 +68,13 @@ export async function resetPassword(db: Db, username: string, password: string):
     tx.update(users).set({ passwordHash }).where(eq(users.id, user.id)).run();
     tx.delete(sessions).where(eq(sessions.userId, user.id)).run();
   });
+}
+
+/** Grants or revokes admin; admins can download the whole database. */
+export function setAdmin(db: Db, username: string, isAdmin: boolean): PublicUser {
+  const user = requireUser(db, username);
+  db.update(users).set({ isAdmin }).where(eq(users.id, user.id)).run();
+  return toPublic({ ...user, isAdmin });
 }
 
 /** Deletes the user; their logs, labels, exercises and sessions cascade. */

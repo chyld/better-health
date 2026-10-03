@@ -16,6 +16,8 @@ export const users = sqliteTable(
     username: text("username").notNull(),
     passwordHash: text("password_hash").notNull(),
     createdAt: text("created_at").notNull(),
+    // Admins can download the whole database. Granted only from the CLI.
+    isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   },
   (t) => [uniqueIndex("users_username_unique").on(sql`lower(${t.username})`)],
 );

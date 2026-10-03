@@ -151,6 +151,34 @@ describe("list", () => {
   });
 });
 
+describe("admin", () => {
+  test("grants and revokes admin; list marks admins", async () => {
+    await createUser(db, { username: "alice", password: "password123" });
+    await createUser(db, { username: "bob", password: "password123" });
+    const grant = fakeIO();
+    expect(await runCli(["admin", "alice"], db, grant.io)).toBe(0);
+    expect(grant.out).toEqual(['"alice" is now an admin and can download the database.']);
+    expect(listUsers(db).map((u) => [u.username, u.isAdmin])).toEqual([
+      ["alice", true],
+      ["bob", false],
+    ]);
+    const list = fakeIO();
+    await runCli(["list"], db, list.io);
+    expect(list.out.map((l) => l.split("\t")[2])).toEqual(["admin", undefined]);
+
+    const revoke = fakeIO();
+    expect(await runCli(["admin", "alice", "--revoke"], db, revoke.io)).toBe(0);
+    expect(revoke.out).toEqual(['"alice" is no longer an admin.']);
+    expect(listUsers(db)[0]?.isAdmin).toBe(false);
+  });
+
+  test("an unknown user exits 1", async () => {
+    const { io, err } = fakeIO();
+    expect(await runCli(["admin", "nobody"], db, io)).toBe(1);
+    expect(err).toEqual(['User "nobody" not found']);
+  });
+});
+
 describe("delete", () => {
   test("asks for confirmation and deletes on a matching answer", async () => {
     const user = await createUser(db, { username: "bob", password: "password123" });

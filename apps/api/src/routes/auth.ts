@@ -34,7 +34,7 @@ export function authRoutes(deps: Deps) {
       deps.loginLimiter.reset(key);
       const session = createSession(deps.db, user.id, deps.clock);
       setSessionCookie(c, deps, session.token, session.expiresAt);
-      return c.json({ user: { id: user.id, username: user.username } }, 200);
+      return c.json({ user: { id: user.id, username: user.username, isAdmin: user.isAdmin } }, 200);
     })
     .post("/logout", (c) => {
       const token = getCookie(c, SESSION_COOKIE);
@@ -44,6 +44,6 @@ export function authRoutes(deps: Deps) {
     })
     .get("/me", requireAuth(deps), (c) => {
       const user = c.get("user");
-      return c.json({ user: { id: user.id, username: user.username } }, 200);
+      return c.json({ user: { id: user.id, username: user.username, isAdmin: user.isAdmin } }, 200);
     });
 }

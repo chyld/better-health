@@ -4,6 +4,7 @@ import { ApiError, api, unwrap } from "@/lib/api";
 export interface CurrentUser {
   id: number;
   username: string;
+  isAdmin: boolean;
 }
 
 export const meQuery = queryOptions({

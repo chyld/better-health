@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { sessions } from "../../src/db/schema";
 import { DAY_MS } from "../../src/lib/clock";
-import { createUser, resetPassword } from "../../src/services/users";
+import { createUser, resetPassword, setAdmin } from "../../src/services/users";
 import { createTestApp, TEST_PASSWORD } from "../helpers/app";
 
 const LOGIN = "/api/auth/login";
@@ -14,7 +14,7 @@ describe("POST /api/auth/login", () => {
     const res = await t.json(LOGIN, "POST", { username: "alice", password: TEST_PASSWORD });
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ user: { id: user.id, username: "alice" } });
+    expect(await res.json()).toEqual({ user: { id: user.id, username: "alice", isAdmin: false } });
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("bh_session=");
     expect(cookie).toContain("HttpOnly");
@@ -136,7 +136,15 @@ describe("GET /api/auth/me", () => {
     const { user, cookie } = await t.signedInUser("alice");
     const res = await t.request("/api/auth/me", { cookie });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ user: { id: user.id, username: "alice" } });
+    expect(await res.json()).toEqual({ user: { id: user.id, username: "alice", isAdmin: false } });
+  });
+
+  test("says when the user is an admin", async () => {
+    const t = createTestApp();
+    const { cookie } = await t.signedInUser("alice");
+    setAdmin(t.db, "alice", true);
+    const res = await t.request("/api/auth/me", { cookie });
+    expect(((await res.json()) as { user: { isAdmin: boolean } }).user.isAdmin).toBe(true);
   });
 
   test("401 without a cookie", async () => {

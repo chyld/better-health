@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { HeartPulse, LogOut, NotebookPen, Tags } from "lucide-react";
+import { HeartPulse, LogOut, NotebookPen, ShieldCheck, Tags } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { CurrentUser } from "@/features/auth/queries";
@@ -31,6 +31,12 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
             <Tags className="size-4" aria-hidden="true" />
             <span className="sr-only sm:not-sr-only">Labels</span>
           </Link>
+          {user.isAdmin && (
+            <Link to="/admin" className={navLink} activeProps={{ className: "bg-violet-100" }}>
+              <ShieldCheck className="size-4" aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">Admin</span>
+            </Link>
+          )}
           <span className="ml-1 hidden items-center gap-2 text-sm font-semibold text-violet-900 sm:flex">
             <span
               className="grid size-8 place-items-center rounded-full bg-linear-to-br from-orange-400 to-pink-500 font-bold text-white uppercase"
