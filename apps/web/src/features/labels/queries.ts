@@ -26,6 +26,7 @@ export function useLabelMutations() {
   const onSuccessWithDays = async () => {
     await onSuccess();
     await queryClient.invalidateQueries({ queryKey: ["day"] });
+    await queryClient.invalidateQueries({ queryKey: ["log"] });
   };
   return {
     create: useMutation({

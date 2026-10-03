@@ -143,6 +143,7 @@ describe("GET /api/months/:month", () => {
       net: null,
       weightLbs: null,
       exerciseCount: 0,
+      exerciseTotals: [],
       hasNote: false,
     });
   });
@@ -179,6 +180,7 @@ describe("GET /api/months/:month", () => {
       net: -750,
       weightLbs: 182.4,
       exerciseCount: 2,
+      exerciseTotals: [{ exerciseTypeId: type.id, amount: 4 }],
       hasNote: true,
     });
   });

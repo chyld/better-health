@@ -1,3 +1,5 @@
+import type { HighlightColor, HighlightMetric, HighlightOperator } from "./highlights";
+
 /** Response shapes shared by the API and the web app. */
 
 export interface DaySummary {
@@ -7,6 +9,8 @@ export interface DaySummary {
   net: number | null;
   weightLbs: number | null;
   exerciseCount: number;
+  /** The day's total amount for each exercise label logged on it. */
+  exerciseTotals: { exerciseTypeId: number; amount: number }[];
   hasNote: boolean;
 }
 
@@ -61,4 +65,16 @@ export interface ExerciseType {
   sortOrder: number;
   archived: boolean;
   lastUsedOn: string | null;
+}
+
+/** Colours a calendar cell when the day's value for a metric meets a condition. */
+export interface HighlightRule {
+  id: number;
+  metric: HighlightMetric;
+  /** Set only when `metric` is "exercise". */
+  exerciseTypeId: number | null;
+  operator: HighlightOperator;
+  target: number;
+  color: HighlightColor;
+  sortOrder: number;
 }

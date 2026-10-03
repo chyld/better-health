@@ -24,8 +24,19 @@ function summarize(day: DayDetail): DaySummary {
     net: day.net,
     weightLbs: day.weightLbs,
     exerciseCount: day.exercises.length,
+    exerciseTotals: exerciseTotals(day),
     hasNote: Boolean(day.note?.trim()),
   };
+}
+
+function exerciseTotals(day: DayDetail): DaySummary["exerciseTotals"] {
+  const totals = new Map<number, number>();
+  for (const e of day.exercises) {
+    totals.set(e.exerciseTypeId, (totals.get(e.exerciseTypeId) ?? 0) + e.amount);
+  }
+  return [...totals]
+    .sort(([a], [b]) => a - b)
+    .map(([exerciseTypeId, amount]) => ({ exerciseTypeId, amount }));
 }
 
 /** Writes a day into the day cache and into its month's cell. */
@@ -67,6 +78,7 @@ export function useUpdateDay(date: string) {
     },
     onSuccess: (day, patch) => {
       writeDay(day);
+      void queryClient.invalidateQueries({ queryKey: ["log"] });
       if (patch.note !== undefined) void queryClient.invalidateQueries({ queryKey: ["notes"] });
       if (Object.keys(patch).some((k) => k !== "note")) {
         void queryClient.invalidateQueries({ queryKey: ["history"] });
@@ -81,6 +93,7 @@ export function useExerciseMutations(date: string) {
   const onSuccess = (day: DayDetail) => {
     writeDay(day);
     void queryClient.invalidateQueries({ queryKey: ["exercise-types"] });
+    void queryClient.invalidateQueries({ queryKey: ["log"] });
   };
   return {
     add: useMutation({

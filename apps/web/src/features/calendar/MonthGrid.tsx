@@ -1,4 +1,10 @@
-import { addDays, calendarWeeks, type DaySummary, WEEKDAYS } from "@better-health/shared";
+import {
+  addDays,
+  calendarWeeks,
+  type DaySummary,
+  type HighlightColor,
+  WEEKDAYS,
+} from "@better-health/shared";
 import { type KeyboardEvent, useEffect, useRef } from "react";
 import { DayCell } from "./DayCell";
 
@@ -8,6 +14,8 @@ interface Props {
   today: string;
   selected: string | undefined;
   onSelect: (date: string) => void;
+  /** The highlight a day meets, if any. */
+  highlightFor?: (day: DaySummary) => { color: HighlightColor; text: string } | undefined;
   /** Keyboard movement; the target may be in another month. */
   onMove: (date: string) => void;
 }
@@ -21,7 +29,7 @@ const MOVES: Record<string, (date: string) => string> = {
   End: (d) => addDays(d, 6 - new Date(`${d}T00:00:00Z`).getUTCDay()),
 };
 
-export function MonthGrid({ month, days, today, selected, onSelect, onMove }: Props) {
+export function MonthGrid({ month, days, today, selected, onSelect, highlightFor, onMove }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const keyboardMoved = useRef(false);
   const byDate = new Map(days.map((d) => [d.date, d]));
@@ -86,6 +94,7 @@ export function MonthGrid({ month, days, today, selected, onSelect, onMove }: Pr
                     isToday={day.date === today}
                     isFuture={day.date > today}
                     isSelected={day.date === selected}
+                    highlight={highlightFor?.(day)}
                     tabIndex={day.date === focusDate ? 0 : -1}
                     onSelect={onSelect}
                   />

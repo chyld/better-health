@@ -8,7 +8,7 @@ import {
   type HistoryDay,
   netCalories,
 } from "@better-health/shared";
-import { and, asc, between, count, desc, eq, isNotNull, or } from "drizzle-orm";
+import { and, asc, between, count, desc, eq, isNotNull, or, sum } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { dailyLogs, exerciseEntries, exerciseTypes } from "../db/schema";
 import { type Clock, systemClock } from "../lib/clock";
@@ -28,15 +28,25 @@ export function getMonth(db: Db, userId: number, month: string): DaySummary[] {
       .all()
       .map((row) => [row.date, row]),
   );
-  const counts = new Map(
-    db
-      .select({ date: exerciseEntries.date, n: count() })
-      .from(exerciseEntries)
-      .where(and(eq(exerciseEntries.userId, userId), between(exerciseEntries.date, first, last)))
-      .groupBy(exerciseEntries.date)
-      .all()
-      .map((row) => [row.date, row.n]),
-  );
+  const counts = new Map<string, number>();
+  const totals = new Map<string, DaySummary["exerciseTotals"]>();
+  for (const row of db
+    .select({
+      date: exerciseEntries.date,
+      exerciseTypeId: exerciseEntries.exerciseTypeId,
+      n: count(),
+      amount: sum(exerciseEntries.amount).mapWith(Number),
+    })
+    .from(exerciseEntries)
+    .where(and(eq(exerciseEntries.userId, userId), between(exerciseEntries.date, first, last)))
+    .groupBy(exerciseEntries.date, exerciseEntries.exerciseTypeId)
+    .orderBy(asc(exerciseEntries.exerciseTypeId))
+    .all()) {
+    counts.set(row.date, (counts.get(row.date) ?? 0) + row.n);
+    const list = totals.get(row.date) ?? [];
+    list.push({ exerciseTypeId: row.exerciseTypeId, amount: row.amount });
+    totals.set(row.date, list);
+  }
 
   return dates.map((date) => {
     const log = logs.get(date);
@@ -49,29 +59,33 @@ export function getMonth(db: Db, userId: number, month: string): DaySummary[] {
       net: netCalories(caloriesIn, caloriesOut),
       weightLbs: log?.weightLbs ?? null,
       exerciseCount: counts.get(date) ?? 0,
+      exerciseTotals: totals.get(date) ?? [],
       hasNote: Boolean(log?.note),
     };
   });
 }
 
+const entryColumns = {
+  date: exerciseEntries.date,
+  id: exerciseEntries.id,
+  exerciseTypeId: exerciseEntries.exerciseTypeId,
+  name: exerciseTypes.name,
+  category: exerciseTypes.category,
+  unit: exerciseTypes.unit,
+  archivedAt: exerciseTypes.archivedAt,
+  amount: exerciseEntries.amount,
+  createdAt: exerciseEntries.createdAt,
+};
+
 function listEntries(db: Db, userId: number, date: string): ExerciseEntry[] {
   return db
-    .select({
-      id: exerciseEntries.id,
-      exerciseTypeId: exerciseEntries.exerciseTypeId,
-      name: exerciseTypes.name,
-      category: exerciseTypes.category,
-      unit: exerciseTypes.unit,
-      archivedAt: exerciseTypes.archivedAt,
-      amount: exerciseEntries.amount,
-      createdAt: exerciseEntries.createdAt,
-    })
+    .select(entryColumns)
     .from(exerciseEntries)
     .innerJoin(exerciseTypes, eq(exerciseTypes.id, exerciseEntries.exerciseTypeId))
     .where(and(eq(exerciseEntries.userId, userId), eq(exerciseEntries.date, date)))
     .orderBy(asc(exerciseEntries.createdAt), asc(exerciseEntries.id))
     .all()
-    .map(({ archivedAt, ...e }) => ({ ...e, archived: archivedAt !== null }));
+    .map(({ date: _date, archivedAt, ...e }) => ({ ...e, archived: archivedAt !== null }));
 }
 
 function findLog(db: Db, userId: number, date: string): LogRow | undefined {
@@ -167,4 +181,44 @@ export function listHistory(db: Db, userId: number): HistoryDay[] {
     .orderBy(desc(dailyLogs.date))
     .all()
     .map((r) => ({ ...r, net: netCalories(r.caloriesIn, r.caloriesOut) }));
+}
+
+/** Every day with anything logged (values, a note or exercises), newest first. */
+export function listLog(db: Db, userId: number): DayDetail[] {
+  const logs = new Map(
+    db
+      .select()
+      .from(dailyLogs)
+      .where(eq(dailyLogs.userId, userId))
+      .all()
+      .map((row) => [row.date, row]),
+  );
+  const entries = new Map<string, ExerciseEntry[]>();
+  for (const { date, archivedAt, ...e } of db
+    .select(entryColumns)
+    .from(exerciseEntries)
+    .innerJoin(exerciseTypes, eq(exerciseTypes.id, exerciseEntries.exerciseTypeId))
+    .where(eq(exerciseEntries.userId, userId))
+    .orderBy(asc(exerciseEntries.createdAt), asc(exerciseEntries.id))
+    .all()) {
+    const list = entries.get(date) ?? [];
+    list.push({ ...e, archived: archivedAt !== null });
+    entries.set(date, list);
+  }
+
+  const dates = [...new Set([...logs.keys(), ...entries.keys()])].sort().reverse();
+  return dates.map((date) => {
+    const log = logs.get(date);
+    const caloriesIn = log?.caloriesIn ?? null;
+    const caloriesOut = log?.caloriesOut ?? null;
+    return {
+      date,
+      caloriesIn,
+      caloriesOut,
+      net: netCalories(caloriesIn, caloriesOut),
+      weightLbs: log?.weightLbs ?? null,
+      note: log?.note ?? null,
+      exercises: entries.get(date) ?? [],
+    };
+  });
 }

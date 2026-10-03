@@ -1,5 +1,11 @@
-import { type DaySummary, formatCompact, formatNumber, formatWeight } from "@better-health/shared";
-import { metricTone, netTone } from "@/lib/tones";
+import {
+  type DaySummary,
+  formatCompact,
+  formatNumber,
+  formatWeight,
+  type HighlightColor,
+} from "@better-health/shared";
+import { highlightTone, metricTone, netTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 import { describeDay } from "./describe";
 
@@ -8,28 +14,42 @@ interface Props {
   isToday: boolean;
   isFuture: boolean;
   isSelected: boolean;
+  /** The highlight rule this day meets, if any. */
+  highlight?: { color: HighlightColor; text: string };
   tabIndex: number;
   onSelect: (date: string) => void;
 }
 
-export function DayCell({ day, isToday, isFuture, isSelected, tabIndex, onSelect }: Props) {
+export function DayCell({
+  day,
+  isToday,
+  isFuture,
+  isSelected,
+  highlight,
+  tabIndex,
+  onSelect,
+}: Props) {
+  const tone = highlight && highlightTone[highlight.color];
   const dayNumber = Number(day.date.slice(8));
   return (
     <button
       type="button"
       data-date={day.date}
       tabIndex={tabIndex}
-      aria-label={describeDay(day, { today: isToday })}
+      aria-label={describeDay(day, { today: isToday, highlight: highlight?.text })}
+      data-highlight={highlight?.color}
       data-future={isFuture || undefined}
       aria-current={isToday ? "date" : undefined}
       onClick={() => onSelect(day.date)}
       className={cn(
         "group flex h-full min-h-20 w-full flex-col items-stretch gap-1 overflow-hidden rounded-xl bg-card p-1 text-left text-[10px] leading-tight tabular-nums shadow-xs ring-1 ring-violet-100 transition-all sm:min-h-24 sm:rounded-2xl sm:p-1.5 sm:text-xs lg:min-h-28",
         "hover:shadow-md hover:ring-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:hover:-translate-y-0.5",
+        tone?.ring,
         isSelected && "bg-violet-50 shadow-md ring-2 ring-violet-500 hover:ring-violet-500",
         // Dimmed with colour, not opacity, so text keeps enough contrast.
         isFuture &&
           "bg-white/50 text-muted-foreground border border-dashed border-violet-200 shadow-none ring-0",
+        tone?.cell,
       )}
     >
       <span className="flex items-center justify-between">

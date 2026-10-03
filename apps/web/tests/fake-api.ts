@@ -3,6 +3,7 @@ import {
   type DaySummary,
   datesInMonth,
   type ExerciseType,
+  type HighlightRule,
   netCalories,
 } from "@better-health/shared";
 import { HttpResponse, http } from "msw";
@@ -39,6 +40,7 @@ function createFake() {
     days: new Map<string, DayRow>(),
     entries: [] as EntryRow[],
     types: [] as TypeRow[],
+    highlights: [] as HighlightRule[],
     nextId: 1,
     /** Every mutating request, for assertions. */
     requests: [] as { method: string; path: string; body: unknown }[],
@@ -84,6 +86,14 @@ function createFake() {
       net: d.net,
       weightLbs: d.weightLbs,
       exerciseCount: d.exercises.length,
+      exerciseTotals: [...new Set(d.exercises.map((e) => e.exerciseTypeId))]
+        .sort((a, b) => a - b)
+        .map((exerciseTypeId) => ({
+          exerciseTypeId,
+          amount: d.exercises
+            .filter((e) => e.exerciseTypeId === exerciseTypeId)
+            .reduce((sum, e) => sum + e.amount, 0),
+        })),
       hasNote: Boolean(d.note),
     };
   }
@@ -185,6 +195,23 @@ function createFake() {
           .map(([date, d]) => ({ date, note: d.note })),
       );
     }),
+    http.get("*/api/log", () => {
+      if (!state.user) return unauthorized();
+      const dates = new Set([...state.days.keys(), ...state.entries.map((e) => e.date)]);
+      return HttpResponse.json(
+        [...dates]
+          .sort((a, b) => b.localeCompare(a))
+          .map(dayDetail)
+          .filter(
+            (d) =>
+              d.caloriesIn !== null ||
+              d.caloriesOut !== null ||
+              d.weightLbs !== null ||
+              Boolean(d.note) ||
+              d.exercises.length > 0,
+          ),
+      );
+    }),
     http.get("*/api/days/:date", ({ params }) => {
       if (!state.user) return unauthorized();
       return HttpResponse.json(dayDetail(String(params.date)));
@@ -237,6 +264,38 @@ function createFake() {
       state.entries = state.entries.filter((e) => !(e.id === id && e.date === date));
       if (state.entries.length === before) return notFound();
       return HttpResponse.json(dayDetail(date));
+    }),
+    http.get("*/api/highlights", () => {
+      if (!state.user) return unauthorized();
+      return HttpResponse.json(state.highlights);
+    }),
+    http.post("*/api/highlights", async ({ request }) => {
+      if (!state.user) return unauthorized();
+      const body = (await record(request, "/api/highlights")) as Omit<
+        HighlightRule,
+        "id" | "sortOrder"
+      >;
+      const rule = { id: state.nextId++, ...body, sortOrder: state.highlights.length };
+      state.highlights.push(rule);
+      return HttpResponse.json(rule, { status: 201 });
+    }),
+    http.put("*/api/highlights/order", async ({ request }) => {
+      if (!state.user) return unauthorized();
+      const { ids } = (await record(request, "/api/highlights/order")) as { ids: number[] };
+      const rest = state.highlights.filter((r) => !ids.includes(r.id)).map((r) => r.id);
+      state.highlights = [...ids, ...rest].flatMap((id, sortOrder) => {
+        const r = state.highlights.find((x) => x.id === id);
+        return r ? [{ ...r, sortOrder }] : [];
+      });
+      return HttpResponse.json(state.highlights);
+    }),
+    http.delete("*/api/highlights/:id", async ({ request, params }) => {
+      if (!state.user) return unauthorized();
+      const id = Number(params.id);
+      await record(request, `/api/highlights/${id}`);
+      if (!state.highlights.some((r) => r.id === id)) return notFound();
+      state.highlights = state.highlights.filter((r) => r.id !== id);
+      return HttpResponse.json(state.highlights);
     }),
     http.get("*/api/exercise-types", ({ request }) => {
       if (!state.user) return unauthorized();
@@ -328,8 +387,14 @@ function createFake() {
       state.entries.push(row);
       return row;
     },
+    addHighlight(rule: Omit<HighlightRule, "id" | "sortOrder">) {
+      const row = { id: state.nextId++, ...rule, sortOrder: state.highlights.length };
+      state.highlights.push(row);
+      return row;
+    },
     reset() {
       state.user = null;
+      state.highlights = [];
       state.days.clear();
       state.entries = [];
       state.types = [];

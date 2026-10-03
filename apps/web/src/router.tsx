@@ -15,7 +15,9 @@ import { meQuery } from "@/features/auth/queries";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
 import { HistoryPage, METRIC_IDS, type MetricId } from "@/features/history/HistoryPage";
 import { LabelsPage } from "@/features/labels/LabelsPage";
+import { LogPage } from "@/features/log/LogPage";
 import { NotesPage } from "@/features/notes/NotesPage";
+import { ProfilePage } from "@/features/profile/ProfilePage";
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -104,6 +106,18 @@ const notesRoute = createRoute({
   component: NotesPage,
 });
 
+const logRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/log",
+  component: LogPage,
+});
+
+const profileRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/profile",
+  component: ProfilePage,
+});
+
 const historyRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/history",
@@ -129,7 +143,9 @@ const routeTree = rootRoute.addChildren([
     calendarRoute,
     labelsRoute,
     notesRoute,
+    logRoute,
     historyRoute,
+    profileRoute,
     adminRoute,
   ]),
 ]);

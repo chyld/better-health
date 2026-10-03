@@ -1,13 +1,15 @@
+import type { DaySummary } from "@better-health/shared";
 import { describe, expect, test } from "vitest";
 import { describeDay, longDate } from "./describe";
 
-const empty = {
+const empty: DaySummary = {
   date: "2026-10-02",
   caloriesIn: null,
   caloriesOut: null,
   net: null,
   weightLbs: null,
   exerciseCount: 0,
+  exerciseTotals: [],
   hasNote: false,
 };
 
@@ -46,5 +48,11 @@ describe("describeDay", () => {
     expect(
       describeDay({ ...empty, caloriesIn: 3000, caloriesOut: 2000, net: 1000, exerciseCount: 1 }),
     ).toBe("Friday, October 2, in 3000, out 2000, net 1000, 1 exercise");
+  });
+
+  test("names the highlight rule the day meets", () => {
+    expect(describeDay({ ...empty, weightLbs: 182.4 }, { highlight: "Weight < 200.0 lbs" })).toBe(
+      "Friday, October 2, weight 182.4 pounds, highlighted: Weight < 200.0 lbs",
+    );
   });
 });

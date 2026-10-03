@@ -5,6 +5,7 @@ import { type TouchEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { DayPanel } from "@/features/day/DayPanel";
+import { useHighlighter } from "@/features/profile/highlights";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { useShortcuts } from "@/hooks/useShortcuts";
 import { longDate } from "./describe";
@@ -26,6 +27,7 @@ export function CalendarPage() {
   const navigate = useNavigate({ from: "/calendar/$month" });
   const isDesktop = useIsDesktop();
   const { data, isPending, isError, refetch } = useMonth(month);
+  const highlightFor = useHighlighter();
 
   // A selected day outside the shown month is ignored.
   const selected = day?.startsWith(month) ? day : undefined;
@@ -128,6 +130,7 @@ export function CalendarPage() {
               today={today}
               selected={selected}
               onSelect={select}
+              highlightFor={highlightFor}
               onMove={moveTo}
             />
           </div>

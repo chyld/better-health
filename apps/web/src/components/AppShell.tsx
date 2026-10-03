@@ -1,5 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { HeartPulse, History, LogOut, NotebookPen, ShieldCheck, Tags } from "lucide-react";
+import {
+  HeartPulse,
+  History,
+  LogOut,
+  NotebookPen,
+  ScrollText,
+  ShieldCheck,
+  Tags,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { CurrentUser } from "@/features/auth/queries";
@@ -18,11 +26,16 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           <span className="brand-gradient grid size-8 place-items-center rounded-xl text-white shadow-md shadow-violet-500/30">
             <HeartPulse className="size-5" aria-hidden="true" />
           </span>
-          <span>
+          {/* Just the logo on phones, to leave room for the nav. */}
+          <span className="sr-only sm:not-sr-only">
             Better <span className="text-fuchsia-700">Health</span>
           </span>
         </Link>
         <nav className="flex items-center gap-0.5 sm:gap-1">
+          <Link to="/log" className={navLink} activeProps={{ className: "bg-violet-100" }}>
+            <ScrollText className="size-4" aria-hidden="true" />
+            <span className="sr-only sm:not-sr-only">Log</span>
+          </Link>
           <Link to="/notes" className={navLink} activeProps={{ className: "bg-violet-100" }}>
             <NotebookPen className="size-4" aria-hidden="true" />
             <span className="sr-only sm:not-sr-only">Notes</span>
@@ -41,15 +54,20 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
               <span className="sr-only sm:not-sr-only">Admin</span>
             </Link>
           )}
-          <span className="ml-1 hidden items-center gap-2 text-sm font-semibold text-violet-900 sm:flex">
+          <Link
+            to="/profile"
+            aria-label={`Profile, ${user.username}`}
+            className="ml-1 flex items-center gap-2 rounded-full p-0.5 text-sm font-semibold text-violet-900 transition-colors hover:bg-violet-100 sm:pr-3"
+            activeProps={{ className: "bg-violet-100" }}
+          >
             <span
               className="grid size-8 place-items-center rounded-full bg-linear-to-br from-orange-400 to-pink-500 font-bold text-white uppercase"
               aria-hidden="true"
             >
               {user.username.slice(0, 1)}
             </span>
-            {user.username}
-          </span>
+            <span className="hidden sm:inline">{user.username}</span>
+          </Link>
           <Button
             variant="ghost"
             size="sm"

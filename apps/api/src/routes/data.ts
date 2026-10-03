@@ -5,6 +5,8 @@ import {
   exerciseTypeCreateSchema,
   exerciseTypeOrderSchema,
   exerciseTypePatchSchema,
+  highlightRuleCreateSchema,
+  highlightRuleOrderSchema,
   isoDateSchema,
   isoMonthSchema,
   type MonthResponse,
@@ -14,7 +16,7 @@ import { z } from "zod";
 import type { AppEnv, Deps } from "../context";
 import { validate } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
-import { getDay, getMonth, listHistory, listNotes, patchDay } from "../services/days";
+import { getDay, getMonth, listHistory, listLog, listNotes, patchDay } from "../services/days";
 import {
   createExerciseType,
   listExerciseTypes,
@@ -22,12 +24,19 @@ import {
   updateExerciseType,
 } from "../services/exercise-types";
 import { addExercise, deleteExercise, updateExercise } from "../services/exercises";
+import {
+  createHighlightRule,
+  deleteHighlightRule,
+  listHighlightRules,
+  reorderHighlightRules,
+} from "../services/highlights";
 
 const idParam = z.coerce.number().int().positive();
 const monthParams = z.object({ month: isoMonthSchema });
 const dateParams = z.object({ date: isoDateSchema });
 const entryParams = z.object({ date: isoDateSchema, id: idParam });
 const typeParams = z.object({ id: idParam });
+const ruleParams = z.object({ id: idParam });
 const typesQuery = z.object({ include: z.literal("archived").optional() });
 
 export function dataRoutes(deps: Deps) {
@@ -39,8 +48,12 @@ export function dataRoutes(deps: Deps) {
     .use("/exercise-types/*", auth)
     .use("/notes", auth)
     .use("/history", auth)
+    .use("/log", auth)
+    .use("/highlights", auth)
+    .use("/highlights/*", auth)
     .get("/notes", (c) => c.json(listNotes(db, c.get("user").id), 200))
     .get("/history", (c) => c.json(listHistory(db, c.get("user").id), 200))
+    .get("/log", (c) => c.json(listLog(db, c.get("user").id), 200))
     .get("/months/:month", validate("param", monthParams), (c) => {
       const { month } = c.req.valid("param");
       const body: MonthResponse = { month, days: getMonth(db, c.get("user").id, month) };
@@ -74,6 +87,16 @@ export function dataRoutes(deps: Deps) {
     .delete("/days/:date/exercises/:id", validate("param", entryParams), (c) => {
       const { date, id } = c.req.valid("param");
       return c.json(deleteExercise(db, c.get("user").id, date, id), 200);
+    })
+    .get("/highlights", (c) => c.json(listHighlightRules(db, c.get("user").id), 200))
+    .post("/highlights", validate("json", highlightRuleCreateSchema), (c) => {
+      return c.json(createHighlightRule(db, c.get("user").id, c.req.valid("json")), 201);
+    })
+    .put("/highlights/order", validate("json", highlightRuleOrderSchema), (c) => {
+      return c.json(reorderHighlightRules(db, c.get("user").id, c.req.valid("json").ids), 200);
+    })
+    .delete("/highlights/:id", validate("param", ruleParams), (c) => {
+      return c.json(deleteHighlightRule(db, c.get("user").id, c.req.valid("param").id), 200);
     })
     .get("/exercise-types", validate("query", typesQuery), (c) => {
       const includeArchived = c.req.valid("query").include === "archived";

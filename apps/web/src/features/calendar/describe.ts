@@ -12,7 +12,10 @@ export function longDate(date: string): string {
 }
 
 /** What a screen reader announces for a calendar cell. */
-export function describeDay(day: DaySummary, { today = false } = {}): string {
+export function describeDay(
+  day: DaySummary,
+  { today = false, highlight }: { today?: boolean; highlight?: string } = {},
+): string {
   const parts = [longDate(day.date)];
   if (today) parts.push("today");
   if (day.caloriesIn !== null) parts.push(`in ${day.caloriesIn}`);
@@ -23,5 +26,6 @@ export function describeDay(day: DaySummary, { today = false } = {}): string {
     parts.push(`${day.exerciseCount} exercise${day.exerciseCount === 1 ? "" : "s"}`);
   }
   if (day.hasNote) parts.push("has a note");
+  if (highlight) parts.push(`highlighted: ${highlight}`);
   return parts.join(", ");
 }

@@ -1,3 +1,4 @@
+import { HIGHLIGHT_COLORS, HIGHLIGHT_METRICS, HIGHLIGHT_OPERATORS } from "@better-health/shared";
 import { sql } from "drizzle-orm";
 import {
   index,
@@ -90,4 +91,24 @@ export const exerciseEntries = sqliteTable(
     createdAt: text("created_at").notNull(),
   },
   (t) => [index("exercise_entries_user_date_idx").on(t.userId, t.date)],
+);
+
+export const highlightRules = sqliteTable(
+  "highlight_rules",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    metric: text("metric", { enum: HIGHLIGHT_METRICS }).notNull(),
+    // Set only for exercise rules; deleting the label deletes its rules.
+    exerciseTypeId: integer("exercise_type_id").references(() => exerciseTypes.id, {
+      onDelete: "cascade",
+    }),
+    operator: text("operator", { enum: HIGHLIGHT_OPERATORS }).notNull(),
+    target: real("target").notNull(),
+    color: text("color", { enum: HIGHLIGHT_COLORS }).notNull(),
+    sortOrder: integer("sort_order").notNull(),
+  },
+  (t) => [index("highlight_rules_user_idx").on(t.userId)],
 );

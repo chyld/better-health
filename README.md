@@ -1,6 +1,6 @@
 # Better Health
 
-Self-hosted calorie calendar. Each user logs calories in, calories out, weight (lbs), exercises (e.g. Walking: 3 miles, from their own labels of name, category and unit such as Walking · cardio · miles) and a note for each day, viewed on a monthly calendar that works on phone, tablet and desktop. A History page lists every logged value of one metric (calories in, calories out, net or weight), newest first, and a Notes page lists every note.
+Self-hosted calorie calendar. Each user logs calories in, calories out, weight (lbs), exercises (e.g. Walking: 3 miles, from their own labels of name, category and unit such as Walking · cardio · miles) and a note for each day, viewed on a monthly calendar that works on phone, tablet and desktop. A Log page lists everything logged, one card per day, newest first, with today always at the top. On their Profile page each user can add calendar highlights: rules such as weight < 200 or Walking ≥ 3 miles (a day's entries for a label are added up) that color matching days in one of eight colors, the first matching rule winning. A History page lists every logged value of one metric (calories in, calories out, net or weight), newest first, and a Notes page lists every note.
 
 ## Stack
 
