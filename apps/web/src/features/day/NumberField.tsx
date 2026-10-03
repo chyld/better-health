@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import type { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
+import type { metricTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 
 /** Enter on a phone keypad jumps to the next field in the panel instead of doing nothing. */
@@ -20,6 +21,8 @@ interface Props {
   schema: z.ZodType<number>;
   decimal?: boolean;
   suffix?: string;
+  icon?: ReactNode;
+  tone?: (typeof metricTone)[keyof typeof metricTone];
   onSave: (value: number | null) => void;
 }
 
@@ -27,7 +30,16 @@ const toText = (v: number | null, decimal: boolean) =>
   v === null ? "" : decimal ? v.toFixed(1) : String(v);
 
 /** A number input that saves itself shortly after typing stops, and on blur. Empty clears. */
-export function NumberField({ label, value, schema, decimal = false, suffix, onSave }: Props) {
+export function NumberField({
+  label,
+  value,
+  schema,
+  decimal = false,
+  suffix,
+  icon,
+  tone,
+  onSave,
+}: Props) {
   const id = useId();
   const [text, setText] = useState(() => toText(value, decimal));
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +84,20 @@ export function NumberField({ label, value, schema, decimal = false, suffix, onS
   }
 
   return (
-    <div className="flex flex-col gap-1.5 lg:grid lg:grid-cols-[1fr_8rem] lg:items-center lg:gap-x-3 lg:gap-y-1">
-      <Label htmlFor={id} className="text-muted-foreground lg:text-foreground">
+    <div
+      className={cn(
+        "flex flex-col gap-2 rounded-2xl p-3 ring-1 lg:grid lg:grid-cols-[1fr_8rem] lg:items-center lg:gap-x-3 lg:gap-y-1 lg:p-2.5",
+        tone ? tone.card : "bg-muted ring-border",
+      )}
+    >
+      <Label htmlFor={id} className={cn("font-semibold", tone?.text)}>
+        {icon && (
+          <span
+            className={cn("grid size-7 place-items-center rounded-lg [&_svg]:size-4", tone?.icon)}
+          >
+            {icon}
+          </span>
+        )}
         {label}
       </Label>
       <div className="relative">
@@ -100,7 +124,7 @@ export function NumberField({ label, value, schema, decimal = false, suffix, onS
             save.flush();
           }}
           className={cn(
-            "h-14 text-right text-2xl tabular-nums md:text-2xl lg:h-9 lg:text-sm",
+            "h-14 border-white bg-white text-right text-2xl font-bold tabular-nums shadow-sm md:text-2xl lg:h-9 lg:text-sm",
             suffix && "pr-14 lg:pr-10",
           )}
         />

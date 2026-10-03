@@ -8,12 +8,13 @@ import {
 } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Dumbbell, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { byRecentUse, exerciseTypesQuery } from "@/features/labels/queries";
 import { ApiError } from "@/lib/api";
+import { labelTone, metricTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 import { useExerciseMutations } from "./queries";
 
@@ -34,9 +35,23 @@ export function ExerciseSection({
   const error = errorText(mutations.remove.error);
 
   return (
-    <section aria-labelledby="exercise-heading" className="space-y-2">
+    <section
+      aria-labelledby="exercise-heading"
+      className={cn("space-y-3 rounded-2xl p-3 ring-1", metricTone.exercise.card)}
+    >
       <div className="flex items-center justify-between">
-        <h3 id="exercise-heading" className="text-sm font-semibold">
+        <h3
+          id="exercise-heading"
+          className={cn("flex items-center gap-2 text-sm font-semibold", metricTone.exercise.text)}
+        >
+          <span
+            className={cn(
+              "grid size-7 place-items-center rounded-lg [&_svg]:size-4",
+              metricTone.exercise.icon,
+            )}
+          >
+            <Dumbbell aria-hidden="true" />
+          </span>
           Exercise
         </h3>
         {!addOpen && (
@@ -52,23 +67,35 @@ export function ExerciseSection({
       </div>
 
       {day.exercises.length === 0 && !addOpen && (
-        <p className="text-sm text-muted-foreground">No exercise logged.</p>
+        <p className="text-sm text-sky-900">No exercise logged.</p>
       )}
 
-      <ul className="divide-y rounded-md border empty:hidden">
+      <ul className="space-y-1.5 empty:hidden">
         {day.exercises.map((entry) =>
           editing === entry.id ? (
-            <li key={entry.id} className="p-2">
+            <li key={entry.id} className="rounded-xl bg-white p-2 shadow-xs">
               <ExerciseForm date={day.date} entry={entry} onDone={() => setEditing(null)} />
             </li>
           ) : (
-            <li key={entry.id} className="flex items-center gap-2 p-2 text-base lg:text-sm">
+            <li
+              key={entry.id}
+              className="flex items-center gap-2 rounded-xl bg-white py-1 pr-1 pl-3 text-base shadow-xs lg:text-sm"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "size-2.5 shrink-0 rounded-full",
+                  labelTone(entry.exerciseTypeId).dot,
+                )}
+              />
               <span className="min-w-0 flex-1">
                 <span className="font-medium">{entry.name}</span>
                 {entry.archived && <span className="text-muted-foreground"> (archived)</span>}
                 <span className="text-muted-foreground">
                   {" – "}
-                  <span className="text-foreground tabular-nums">{formatAmount(entry.amount)}</span>
+                  <span className="font-bold text-foreground tabular-nums">
+                    {formatAmount(entry.amount)}
+                  </span>
                   {entry.unit && ` ${entry.unit}`}
                 </span>
               </span>
@@ -169,7 +196,7 @@ function ExerciseForm({
 
   if (types.isSuccess && choices.length === 0) {
     return (
-      <div className="space-y-2 rounded-md border p-3 text-sm">
+      <div className="space-y-2 rounded-xl bg-white p-3 text-sm shadow-xs">
         <p>No exercise labels yet.</p>
         <div className="flex gap-2">
           <Button size="sm" asChild>
@@ -193,7 +220,7 @@ function ExerciseForm({
         }
       }}
       aria-label={entry ? `Edit ${entryText(entry)}` : "Add exercise"}
-      className="space-y-3 rounded-md border p-3"
+      className="space-y-3 rounded-xl bg-white p-3 shadow-xs"
     >
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Pick an exercise</legend>
@@ -206,10 +233,10 @@ function ExerciseForm({
               aria-checked={typeId === t.id}
               onClick={() => pick(t.id)}
               className={cn(
-                "rounded-full border px-4 py-2.5 text-base transition-colors lg:px-3 lg:py-1.5 lg:text-sm",
+                "rounded-full px-4 py-2.5 text-base font-semibold ring-1 transition-all lg:px-3 lg:py-1.5 lg:text-sm",
                 typeId === t.id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "hover:bg-accent",
+                  ? `${labelTone(t.id).on} text-white shadow-md ring-transparent motion-safe:scale-105`
+                  : `${labelTone(t.id).chip} hover:brightness-95`,
               )}
             >
               {labelText(t)}

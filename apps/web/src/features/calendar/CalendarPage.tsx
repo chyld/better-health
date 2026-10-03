@@ -70,10 +70,10 @@ export function CalendarPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <main className="flex min-w-0 flex-1 flex-col gap-3 p-2 sm:p-4">
+      <main className="flex min-w-0 flex-1 flex-col gap-3 p-2 sm:gap-4 sm:p-4 lg:p-6">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" asChild>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="outline" size="icon" className="rounded-full" asChild>
               <Link
                 to="/calendar/$month"
                 params={{ month: shiftMonth(month, -1) }}
@@ -83,10 +83,13 @@ export function CalendarPage() {
                 <ChevronLeft />
               </Link>
             </Button>
-            <h1 className="min-w-36 text-center text-lg font-semibold" aria-live="polite">
+            <h1
+              className="min-w-40 text-center text-xl font-extrabold tracking-tight sm:min-w-52 sm:text-2xl"
+              aria-live="polite"
+            >
               {title}
             </h1>
-            <Button variant="outline" size="icon" asChild>
+            <Button variant="outline" size="icon" className="rounded-full" asChild>
               <Link
                 to="/calendar/$month"
                 params={{ month: shiftMonth(month, 1) }}
@@ -97,7 +100,7 @@ export function CalendarPage() {
               </Link>
             </Button>
           </div>
-          <Button variant="outline" size="sm" asChild>
+          <Button size="sm" className="rounded-full px-4" asChild>
             <Link
               to="/calendar/$month"
               params={{ month: today.slice(0, 7) }}
@@ -138,7 +141,10 @@ export function CalendarPage() {
       </main>
 
       {isDesktop ? (
-        <aside className="w-full shrink-0 border-l lg:w-96" aria-label="Day details">
+        <aside
+          className="w-full shrink-0 border-l border-violet-100 bg-white/70 backdrop-blur-sm lg:w-96"
+          aria-label="Day details"
+        >
           {panelDate ? (
             <DayPanel
               key={panelDate}
@@ -154,7 +160,7 @@ export function CalendarPage() {
         <>
           <Button
             size="icon"
-            className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 size-14 rounded-full shadow-lg"
+            className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 size-14 rounded-full shadow-xl shadow-fuchsia-500/40"
             aria-label="Log today"
             onClick={goToday}
           >
@@ -163,9 +169,9 @@ export function CalendarPage() {
           <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && select(undefined)}>
             <SheetContent
               side="bottom"
-              className="h-[92dvh] gap-0 overflow-y-auto rounded-t-xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+              className="h-[92dvh] gap-0 overflow-y-auto rounded-t-3xl border-violet-100 pb-[max(1rem,env(safe-area-inset-bottom))]"
             >
-              <SheetTitle className="px-4 pt-4 text-lg">
+              <SheetTitle className="px-4 pt-3 text-xl font-extrabold tracking-tight">
                 {selected ? longDate(selected) : "Day"}
               </SheetTitle>
               <SheetDescription className="sr-only">

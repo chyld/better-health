@@ -17,8 +17,8 @@ export default defineConfig({
         description: "Daily calories, weight and exercise on a monthly calendar",
         start_url: "/",
         display: "standalone",
-        background_color: "#ffffff",
-        theme_color: "#ffffff",
+        background_color: "#faf7ff",
+        theme_color: "#7c3aed",
         icons: [
           { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
           { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },

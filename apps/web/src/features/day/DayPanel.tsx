@@ -1,9 +1,12 @@
 import { caloriesSchema, type DayPatch, formatNumber, weightSchema } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
+import { Flame, Scale, Sparkles, Utensils } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { longDate } from "@/features/calendar/describe";
 import { ApiError } from "@/lib/api";
+import { metricTone, netTone } from "@/lib/tones";
+import { cn } from "@/lib/utils";
 import { ExerciseSection } from "./ExerciseSection";
 import { NoteField } from "./NoteField";
 import { NumberField } from "./NumberField";
@@ -32,7 +35,7 @@ export function DayPanel({
     <section aria-label={`Details for ${longDate(date)}`} className="space-y-6 p-4 lg:space-y-5">
       {heading ? (
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold">{longDate(date)}</h2>
+          <h2 className="text-xl font-extrabold tracking-tight">{longDate(date)}</h2>
           <SaveStatus pending={update.isPending} error={update.error} saved={update.isSuccess} />
         </div>
       ) : (
@@ -53,32 +56,51 @@ export function DayPanel({
 
       {day && (
         <>
-          <div className="space-y-4 lg:space-y-3">
+          <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
               <NumberField
                 label="Calories in"
+                icon={<Utensils />}
+                tone={metricTone.in}
                 value={day.caloriesIn}
                 schema={caloriesSchema}
                 onSave={(caloriesIn) => save({ caloriesIn })}
               />
               <NumberField
                 label="Calories out"
+                icon={<Flame />}
+                tone={metricTone.out}
                 value={day.caloriesOut}
                 schema={caloriesSchema}
                 onSave={(caloriesOut) => save({ caloriesOut })}
               />
             </div>
-            <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 lg:grid lg:grid-cols-[1fr_8rem] lg:gap-3 lg:bg-transparent lg:p-0 lg:text-sm">
-              <span className="font-medium">Net</span>
+            <div
+              className={cn(
+                "flex items-center justify-between rounded-2xl px-4 py-3 ring-1 ring-transparent",
+                netTone(day.net).card,
+              )}
+            >
+              <span className={cn("flex items-center gap-2 font-semibold", netTone(day.net).text)}>
+                <span className="grid size-7 place-items-center rounded-lg bg-white/80 [&_svg]:size-4">
+                  <Sparkles aria-hidden="true" />
+                </span>
+                Net
+              </span>
               <output
                 aria-label="Net"
-                className="text-right text-2xl font-semibold tabular-nums lg:px-3 lg:text-sm"
+                className={cn(
+                  "text-right text-3xl font-extrabold tracking-tight tabular-nums lg:text-2xl",
+                  netTone(day.net).text,
+                )}
               >
                 {day.net === null ? "—" : formatNumber(day.net, { signed: true })}
               </output>
             </div>
             <NumberField
               label="Weight"
+              icon={<Scale />}
+              tone={metricTone.weight}
               value={day.weightLbs}
               schema={weightSchema}
               decimal

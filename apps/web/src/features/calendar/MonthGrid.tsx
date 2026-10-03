@@ -53,14 +53,14 @@ export function MonthGrid({ month, days, today, selected, onSelect, onMove }: Pr
       aria-label="Month"
       aria-readonly="true"
       onKeyDown={onKeyDown}
-      className="flex flex-col gap-1"
+      className="flex flex-col gap-1 sm:gap-1.5"
     >
-      <div role="row" className="grid grid-cols-7 gap-1">
+      <div role="row" className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {WEEKDAYS.map((d) => (
           <div
             key={d}
             role="columnheader"
-            className="text-center text-xs font-medium text-muted-foreground"
+            className="pb-1 text-center text-[11px] font-bold tracking-wider text-violet-800 uppercase"
           >
             <abbr title={d} className="no-underline">
               <span className="sm:hidden">{d[0]}</span>
@@ -70,7 +70,7 @@ export function MonthGrid({ month, days, today, selected, onSelect, onMove }: Pr
         ))}
       </div>
       {weeks.map((week) => (
-        <div role="row" key={week.find(Boolean)} className="grid grid-cols-7 gap-1">
+        <div role="row" key={week.find(Boolean)} className="grid grid-cols-7 gap-1 sm:gap-1.5">
           {week.map((date, i) => {
             const day = date ? byDate.get(date) : undefined;
             return (

@@ -1,34 +1,36 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/plus-jakarta-sans";
 
-/* shadcn/ui neutral theme, light only. */
+/* Light only. Violet primary on a soft lavender canvas; each metric has its own colour
+   (see src/lib/tones.ts). Text colours are chosen to pass WCAG AA on their backgrounds. */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.875rem;
+  --background: oklch(0.985 0.008 300);
+  --foreground: oklch(0.24 0.05 285);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.24 0.05 285);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  /* Darker than shadcn's default so small text passes WCAG AA on muted backgrounds. */
-  --muted-foreground: oklch(0.48 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.24 0.05 285);
+  --primary: oklch(0.52 0.24 293);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.02 300);
+  --secondary-foreground: oklch(0.3 0.08 290);
+  --muted: oklch(0.965 0.014 300);
+  --muted-foreground: oklch(0.48 0.035 290);
+  --accent: oklch(0.95 0.03 300);
+  --accent-foreground: oklch(0.3 0.1 290);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0.91 0.025 300);
+  --input: oklch(0.88 0.035 300);
+  --ring: oklch(0.6 0.22 293);
   color-scheme: light;
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --color-background: var(--background);
@@ -57,5 +59,20 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Plus Jakarta Sans sets words a little tight. */
+    word-spacing: 0.06em;
+    /* Soft colour washes in the corners; fixed so they stay put while scrolling. */
+    background-image:
+      radial-gradient(40rem 30rem at 0% 0%, oklch(0.93 0.06 300 / 0.7), transparent 70%),
+      radial-gradient(36rem 28rem at 100% 10%, oklch(0.94 0.05 350 / 0.6), transparent 70%),
+      radial-gradient(40rem 30rem at 50% 110%, oklch(0.95 0.05 60 / 0.6), transparent 70%);
+    background-attachment: fixed;
   }
+  kbd {
+    @apply rounded-md border border-violet-200 bg-white px-1.5 py-0.5 font-mono text-[0.85em] font-semibold text-violet-900 shadow-[0_1px_0] shadow-violet-200;
+  }
+}
+
+@utility brand-gradient {
+  background-image: linear-gradient(135deg, var(--color-violet-600), var(--color-fuchsia-600));
 }

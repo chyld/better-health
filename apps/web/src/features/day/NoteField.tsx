@@ -1,8 +1,11 @@
 import { DAY_NOTE_MAX } from "@better-health/shared";
+import { NotebookPen } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
+import { metricTone } from "@/lib/tones";
+import { cn } from "@/lib/utils";
 
 export function NoteField({
   value,
@@ -27,14 +30,24 @@ export function NoteField({
   }, [value]);
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>Notes</Label>
+    <div className={cn("space-y-2 rounded-2xl p-3 ring-1", metricTone.note.card)}>
+      <Label htmlFor={id} className={cn("font-semibold", metricTone.note.text)}>
+        <span
+          className={cn(
+            "grid size-7 place-items-center rounded-lg [&_svg]:size-4",
+            metricTone.note.icon,
+          )}
+        >
+          <NotebookPen aria-hidden="true" />
+        </span>
+        Notes
+      </Label>
       <Textarea
         id={id}
         value={text}
         maxLength={DAY_NOTE_MAX}
         rows={4}
-        className="text-base lg:text-sm"
+        className="border-white bg-white text-base shadow-sm lg:text-sm"
         placeholder="How did today go?"
         onChange={(e) => {
           setText(e.target.value);

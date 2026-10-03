@@ -1,34 +1,55 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { HeartPulse, LogOut, NotebookPen, Tags } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { CurrentUser } from "@/features/auth/queries";
 import { useLogout } from "@/features/auth/queries";
+
+const navLink =
+  "flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-violet-900 transition-colors hover:bg-violet-100";
 
 export function AppShell({ user, children }: { user: CurrentUser; children: ReactNode }) {
   const logout = useLogout();
   const navigate = useNavigate();
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between gap-2 border-b px-4 py-2">
-        <Link to="/" className="font-semibold">
-          Better Health
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-violet-100 bg-white/75 px-3 py-2 backdrop-blur-md sm:px-4">
+        <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
+          <span className="brand-gradient grid size-8 place-items-center rounded-xl text-white shadow-md shadow-violet-500/30">
+            <HeartPulse className="size-5" aria-hidden="true" />
+          </span>
+          <span>
+            Better <span className="text-fuchsia-700">Health</span>
+          </span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/notes">Notes</Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/labels">Labels</Link>
-          </Button>
-          <span className="hidden text-muted-foreground sm:inline">{user.username}</span>
+        <nav className="flex items-center gap-0.5 sm:gap-1">
+          <Link to="/notes" className={navLink} activeProps={{ className: "bg-violet-100" }}>
+            <NotebookPen className="size-4" aria-hidden="true" />
+            <span className="sr-only sm:not-sr-only">Notes</span>
+          </Link>
+          <Link to="/labels" className={navLink} activeProps={{ className: "bg-violet-100" }}>
+            <Tags className="size-4" aria-hidden="true" />
+            <span className="sr-only sm:not-sr-only">Labels</span>
+          </Link>
+          <span className="ml-1 hidden items-center gap-2 text-sm font-semibold text-violet-900 sm:flex">
+            <span
+              className="grid size-8 place-items-center rounded-full bg-linear-to-br from-orange-400 to-pink-500 font-bold text-white uppercase"
+              aria-hidden="true"
+            >
+              {user.username.slice(0, 1)}
+            </span>
+            {user.username}
+          </span>
           <Button
             variant="ghost"
             size="sm"
+            className="rounded-full text-violet-900 hover:bg-violet-100"
             onClick={() =>
               logout.mutate(undefined, { onSettled: () => navigate({ to: "/login" }) })
             }
           >
-            Sign out
+            <LogOut aria-hidden="true" />
+            <span className="sr-only sm:not-sr-only">Sign out</span>
           </Button>
         </nav>
       </header>

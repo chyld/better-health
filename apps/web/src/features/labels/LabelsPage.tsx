@@ -6,12 +6,14 @@ import {
 } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, ArrowUp, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, ArrowUp, Pencil, Tags } from "lucide-react";
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api";
+import { labelTone } from "@/lib/tones";
+import { cn } from "@/lib/utils";
 import { exerciseTypesQuery, useLabelMutations } from "./queries";
 
 const errorText = (e: unknown) =>
@@ -35,13 +37,16 @@ export function LabelsPage() {
 
   return (
     <main className="mx-auto w-full max-w-xl space-y-6 p-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild>
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="icon" className="rounded-full" asChild>
           <Link to="/" aria-label="Back to calendar">
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="text-xl font-semibold">Exercise labels</h1>
+        <span className="grid size-9 place-items-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/30">
+          <Tags className="size-5" aria-hidden="true" />
+        </span>
+        <h1 className="text-2xl font-extrabold tracking-tight">Exercise labels</h1>
       </div>
 
       <AddLabelForm />
@@ -63,13 +68,16 @@ export function LabelsPage() {
 
       {data && (
         <section aria-labelledby="active-heading" className="space-y-2">
-          <h2 id="active-heading" className="text-sm font-semibold">
+          <h2
+            id="active-heading"
+            className="text-sm font-bold tracking-wide text-violet-800 uppercase"
+          >
             Active
           </h2>
           {active.length === 0 ? (
             <p className="text-sm text-muted-foreground">No labels yet. Add one above.</p>
           ) : (
-            <ul aria-labelledby="active-heading" className="divide-y rounded-md border">
+            <ul aria-labelledby="active-heading" className="space-y-2">
               {active.map((t, i) => (
                 <LabelRow key={t.id} label={t}>
                   <Button
@@ -107,13 +115,16 @@ export function LabelsPage() {
 
       {archived.length > 0 && (
         <section aria-labelledby="archived-heading" className="space-y-2">
-          <h2 id="archived-heading" className="text-sm font-semibold">
+          <h2
+            id="archived-heading"
+            className="text-sm font-bold tracking-wide text-violet-800 uppercase"
+          >
             Archived
           </h2>
           <p className="text-xs text-muted-foreground">
             Hidden from the picker; past entries still show them.
           </p>
-          <ul aria-labelledby="archived-heading" className="divide-y rounded-md border">
+          <ul aria-labelledby="archived-heading" className="space-y-2">
             {archived.map((t) => (
               <LabelRow key={t.id} label={t}>
                 <Button
@@ -200,7 +211,11 @@ function AddLabelForm() {
   }
 
   return (
-    <form onSubmit={submit} aria-label="Add label" className="space-y-1">
+    <form
+      onSubmit={submit}
+      aria-label="Add label"
+      className="space-y-1 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-violet-100"
+    >
       <div className="flex items-end gap-2">
         <NameUnitFields
           name={name}
@@ -250,7 +265,7 @@ function LabelRow({ label, children }: { label: ExerciseType; children: ReactNod
 
   if (editing) {
     return (
-      <li className="space-y-1 p-2">
+      <li className="space-y-1 rounded-2xl bg-white p-3 shadow-sm ring-2 ring-violet-300">
         <form
           onSubmit={submit}
           onKeyDown={(e) => e.key === "Escape" && cancel()}
@@ -279,7 +294,19 @@ function LabelRow({ label, children }: { label: ExerciseType; children: ReactNod
   }
 
   return (
-    <li className="flex items-center gap-1 p-2 pl-3 text-sm">
+    <li
+      className={cn(
+        "flex items-center gap-1 rounded-2xl bg-white p-1.5 pl-3 text-sm shadow-xs ring-1 ring-violet-100",
+        label.archived && "bg-white/60",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "mr-1 size-3 shrink-0 rounded-full",
+          label.archived ? "bg-slate-300" : labelTone(label.id).dot,
+        )}
+      />
       <span className="min-w-0 flex-1 truncate">
         <span className="font-medium">{label.name}</span>
         {label.unit ? (
