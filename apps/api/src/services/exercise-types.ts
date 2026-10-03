@@ -1,5 +1,5 @@
 import { type ExerciseType, type ExerciseTypePatch, labelText } from "@better-health/shared";
-import { and, asc, eq, max, sql } from "drizzle-orm";
+import { and, asc, count, eq, max, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { exerciseEntries, exerciseTypes } from "../db/schema";
 import { type Clock, systemClock } from "../lib/clock";
@@ -158,4 +158,36 @@ export function reorderExerciseTypes(db: Db, userId: number, ids: number[]): Exe
     }
   });
   return listExerciseTypes(db, userId, { includeArchived: true });
+}
+
+/** For the CLI: every label, archived included, with how many exercises are logged with it. */
+export function listExerciseTypesWithCounts(
+  db: Db,
+  userId: number,
+): (ExerciseType & { entryCount: number })[] {
+  const counts = new Map(
+    db
+      .select({ typeId: exerciseEntries.exerciseTypeId, n: count() })
+      .from(exerciseEntries)
+      .where(eq(exerciseEntries.userId, userId))
+      .groupBy(exerciseEntries.exerciseTypeId)
+      .all()
+      .map((r) => [r.typeId, r.n]),
+  );
+  return listExerciseTypes(db, userId, { includeArchived: true }).map((t) => ({
+    ...t,
+    entryCount: counts.get(t.id) ?? 0,
+  }));
+}
+
+/**
+ * Permanently deletes a label and every exercise logged with it. Only the CLI calls this;
+ * the web app can archive a label but never delete one.
+ */
+export function deleteExerciseType(db: Db, userId: number, id: number): void {
+  requireExerciseType(db, userId, id);
+  // Logged exercises go with it (ON DELETE CASCADE).
+  db.delete(exerciseTypes)
+    .where(and(eq(exerciseTypes.id, id), eq(exerciseTypes.userId, userId)))
+    .run();
 }

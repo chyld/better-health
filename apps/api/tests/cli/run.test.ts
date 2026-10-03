@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { runCli } from "../../src/cli/run";
 import type { Db } from "../../src/db/client";
-import { sessions } from "../../src/db/schema";
+import { exerciseEntries, exerciseTypes, sessions } from "../../src/db/schema";
 import { createUser, listUsers, verifyCredentials } from "../../src/services/users";
 import { createTestDb } from "../helpers/db";
-import { makeDay } from "../helpers/factories";
+import { makeDay, makeExercise, makeExerciseType } from "../helpers/factories";
 import { fakeIO } from "./fake-io";
 
 let db: Db;
@@ -208,5 +208,113 @@ describe("delete", () => {
     const { io, err } = fakeIO();
     expect(await runCli(["delete", "ghost", "--yes"], db, io)).toBe(1);
     expect(err).toEqual(['User "ghost" not found']);
+  });
+});
+
+describe("label-list", () => {
+  test("lists a user's labels with ids and how many exercises use them", async () => {
+    const user = await createUser(db, { username: "alice", password: "password123" });
+    const walk = makeExerciseType(db, user.id, {
+      name: "Walking",
+      category: "cardio",
+      unit: "miles",
+    });
+    makeExerciseType(db, user.id, { name: "Steps", unit: "steps", archivedAt: "x" });
+    makeExercise(db, user.id, walk.id);
+    makeExercise(db, user.id, walk.id);
+    const { io, out } = fakeIO();
+    expect(await runCli(["label-list", "alice"], db, io)).toBe(0);
+    expect(out).toEqual([
+      `${walk.id}\tWalking\tcardio\tmiles\t2 logged exercises`,
+      expect.stringMatching(/^\d+\tSteps\t-\tsteps\t0 logged exercises\tarchived$/),
+    ]);
+  });
+
+  test("says when there are none, and fails for an unknown user", async () => {
+    await createUser(db, { username: "alice", password: "password123" });
+    const empty = fakeIO();
+    expect(await runCli(["label-list", "alice"], db, empty.io)).toBe(0);
+    expect(empty.out).toEqual(['"alice" has no exercise labels.']);
+    const unknown = fakeIO();
+    expect(await runCli(["label-list", "nobody"], db, unknown.io)).toBe(1);
+  });
+});
+
+describe("label-delete", () => {
+  async function setup() {
+    const user = await createUser(db, { username: "alice", password: "password123" });
+    const walk = makeExerciseType(db, user.id, {
+      name: "Walking",
+      category: "cardio",
+      unit: "miles",
+    });
+    const yoga = makeExerciseType(db, user.id, { name: "Yoga", unit: "minutes" });
+    makeExercise(db, user.id, walk.id);
+    makeExercise(db, user.id, walk.id);
+    makeExercise(db, user.id, yoga.id);
+    return { user, walk, yoga };
+  }
+  const remainingLabels = () =>
+    db
+      .select()
+      .from(exerciseTypes)
+      .all()
+      .map((t) => t.name);
+  const remainingEntries = () => db.select().from(exerciseEntries).all().length;
+
+  test("asks for the label name, then deletes it and its logged exercises", async () => {
+    const { walk } = await setup();
+    const { io, out, asked } = fakeIO({ prompt: ["Walking"] });
+    expect(await runCli(["label-delete", "alice", String(walk.id)], db, io)).toBe(0);
+    expect(asked[0]).toContain('permanently deletes "Walking (miles)" and its 2 logged exercises');
+    expect(out).toEqual(['Deleted "Walking (miles)" and its 2 logged exercises.']);
+    expect(remainingLabels()).toEqual(["Yoga"]);
+    expect(remainingEntries()).toBe(1);
+  });
+
+  test("aborts when the typed name does not match", async () => {
+    const { walk } = await setup();
+    const { io, err } = fakeIO({ prompt: ["walk"] });
+    expect(await runCli(["label-delete", "alice", String(walk.id)], db, io)).toBe(1);
+    expect(err).toEqual(["Aborted."]);
+    expect(remainingLabels()).toEqual(["Walking", "Yoga"]);
+    expect(remainingEntries()).toBe(3);
+  });
+
+  test("--yes skips the confirmation", async () => {
+    const { yoga } = await setup();
+    const { io, out, asked } = fakeIO();
+    expect(await runCli(["label-delete", "alice", String(yoga.id), "--yes"], db, io)).toBe(0);
+    expect(asked).toEqual([]);
+    expect(out).toEqual(['Deleted "Yoga (minutes)" and its 1 logged exercise.']);
+  });
+
+  test("an unused label says so", async () => {
+    const user = await createUser(db, { username: "alice", password: "password123" });
+    const steps = makeExerciseType(db, user.id, { name: "Steps", unit: "steps" });
+    const { io, out } = fakeIO();
+    await runCli(["label-delete", "alice", String(steps.id), "--yes"], db, io);
+    expect(out).toEqual(['Deleted "Steps (steps)" (no exercises are logged with it).']);
+  });
+
+  test("never touches another user's label", async () => {
+    const { walk } = await setup();
+    await createUser(db, { username: "bob", password: "password123" });
+    const { io, err } = fakeIO();
+    expect(await runCli(["label-delete", "bob", String(walk.id), "--yes"], db, io)).toBe(1);
+    expect(err).toEqual([`"bob" has no label with id ${walk.id}. See label:list.`]);
+    expect(remainingLabels()).toEqual(["Walking", "Yoga"]);
+  });
+
+  test("rejects a missing or malformed id", async () => {
+    await setup();
+    for (const args of [
+      ["label-delete", "alice"],
+      ["label-delete", "alice", "abc"],
+      ["label-delete", "alice", "1", "2"],
+    ]) {
+      const { io } = fakeIO();
+      expect(await runCli(args, db, io)).toBe(2);
+    }
   });
 });

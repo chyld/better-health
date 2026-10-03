@@ -53,7 +53,11 @@ bun run user:reset-password <username>  # also signs the user out everywhere
 bun run user:list
 bun run user:delete <username>          # asks for confirmation (or --yes)
 bun run user:admin <username>           # can download the database (--revoke to undo)
+bun run label:list <username>           # a user's exercise labels, with ids
+bun run label:delete <username> <id>    # asks for confirmation (or --yes)
 ```
+
+Exercise labels can only be deleted here: the web app archives them instead. Deleting a label also deletes every exercise logged with it.
 
 Admins get an **Admin** page in the header with a button that downloads a consistent copy of the whole database (all users' data and password hashes). Nobody is an admin until granted here.
 
@@ -84,7 +88,7 @@ git pull
 docker compose up -d --build
 ```
 
-Migrations run when the container starts, and when a release brings new ones the database is first backed up to `DATA_DIR/backups/`. The other user commands work the same way (`docker compose run --rm app bun run user:list`, and so on), as does `bun run db:backup`. Logs: `docker compose logs -f`. To restore a backup, `docker compose down`, copy it over `DATA_DIR/better-health.db`, delete the `-wal` and `-shm` files next to it, and `docker compose up -d`.
+Migrations run when the container starts, and when a release brings new ones the database is first backed up to `DATA_DIR/backups/`. The other user and label commands work the same way (`docker compose run --rm app bun run user:list`, `… bun run label:delete <username> <id>`, and so on), as does `bun run db:backup`. Logs: `docker compose logs -f`. To restore a backup, `docker compose down`, copy it over `DATA_DIR/better-health.db`, delete the `-wal` and `-shm` files next to it, and `docker compose up -d`.
 
 Unlike `bun run deploy`, building the image does not run the test suite; run `bun run test` first if you want that check.
 

@@ -22,6 +22,8 @@
     "user:list": "bun apps/api/src/cli/main.ts list",
     "user:delete": "bun apps/api/src/cli/main.ts delete",
     "user:admin": "bun apps/api/src/cli/main.ts admin",
+    "label:list": "bun apps/api/src/cli/main.ts label-list",
+    "label:delete": "bun apps/api/src/cli/main.ts label-delete",
     "build": "bun run --cwd apps/web build",
     "dev:api": "bun run --cwd apps/api dev",
     "dev:web": "bun run --cwd apps/web dev",

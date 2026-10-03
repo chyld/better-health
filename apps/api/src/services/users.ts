@@ -28,7 +28,7 @@ export function findUserByUsername(db: Db, username: string): User | undefined {
     .get();
 }
 
-function requireUser(db: Db, username: string): User {
+export function requireUser(db: Db, username: string): User {
   const user = findUserByUsername(db, username);
   if (!user) throw new NotFoundError(`User "${username}" not found`);
   return user;

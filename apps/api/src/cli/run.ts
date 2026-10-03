@@ -1,6 +1,15 @@
+import { labelText } from "@better-health/shared";
 import type { Db } from "../db/client";
 import { AppError } from "../lib/errors";
-import { createUser, deleteUser, listUsers, resetPassword, setAdmin } from "../services/users";
+import { deleteExerciseType, listExerciseTypesWithCounts } from "../services/exercise-types";
+import {
+  createUser,
+  deleteUser,
+  listUsers,
+  requireUser,
+  resetPassword,
+  setAdmin,
+} from "../services/users";
 
 export interface CliIO {
   out(line: string): void;
@@ -17,7 +26,9 @@ const USAGE = `Usage:
   user:reset-password <username> [--password-stdin]
   user:list
   user:delete <username> [--yes]
-  user:admin <username> [--revoke]`;
+  user:admin <username> [--revoke]
+  label:list <username>
+  label:delete <username> <label-id> [--yes]`;
 
 class UsageError extends Error {}
 
@@ -67,7 +78,11 @@ const FLAGS: Record<string, string[]> = {
   list: [],
   delete: ["--yes"],
   admin: ["--revoke"],
+  "label-list": [],
+  "label-delete": ["--yes"],
 };
+
+const exercises = (n: number) => `${n} logged ${n === 1 ? "exercise" : "exercises"}`;
 
 export async function runCli(argv: readonly string[], db: Db, io: CliIO): Promise<number> {
   try {
@@ -112,6 +127,47 @@ export async function runCli(argv: readonly string[], db: Db, io: CliIO): Promis
         }
         deleteUser(db, username);
         io.out(`Deleted user "${username}".`);
+        return 0;
+      }
+      case "label-list": {
+        const user = requireUser(db, oneUsername(parsed));
+        const labels = listExerciseTypesWithCounts(db, user.id);
+        if (labels.length === 0) io.out(`"${user.username}" has no exercise labels.`);
+        for (const t of labels) {
+          const parts = [t.id, t.name, t.category || "-", t.unit || "-", exercises(t.entryCount)];
+          if (t.archived) parts.push("archived");
+          io.out(parts.join("\t"));
+        }
+        return 0;
+      }
+      case "label-delete": {
+        const [username, rawId, ...extra] = parsed.positionals;
+        if (!username || !rawId || extra.length > 0) {
+          throw new UsageError("Expected <username> and <label-id> (see label:list).");
+        }
+        const id = Number(rawId);
+        if (!Number.isInteger(id) || id <= 0) throw new UsageError(`Not a label id: ${rawId}`);
+        const user = requireUser(db, username);
+        const label = listExerciseTypesWithCounts(db, user.id).find((t) => t.id === id);
+        if (!label) {
+          io.err(`"${user.username}" has no label with id ${id}. See label:list.`);
+          return 1;
+        }
+        const what =
+          label.entryCount === 0
+            ? `"${labelText(label)}" (no exercises are logged with it)`
+            : `"${labelText(label)}" and its ${exercises(label.entryCount)}`;
+        if (!parsed.flags.has("--yes")) {
+          const answer = await io.prompt(
+            `This permanently deletes ${what}. Type the label name (${label.name}) to confirm: `,
+          );
+          if (answer.trim() !== label.name) {
+            io.err("Aborted.");
+            return 1;
+          }
+        }
+        deleteExerciseType(db, user.id, id);
+        io.out(`Deleted ${what}.`);
         return 0;
       }
       case "admin": {
