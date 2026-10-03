@@ -9,6 +9,11 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().default("127.0.0.1"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  /** Mark the session cookie HTTPS-only. Unset: on in production, off otherwise. */
+  COOKIE_SECURE: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

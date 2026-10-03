@@ -57,6 +57,37 @@ bun run user:admin <username>           # can download the database (--revoke to
 
 Admins get an **Admin** page in the header with a button that downloads a consistent copy of the whole database (all users' data and password hashes). Nobody is an admin until granted here.
 
+## Running with Docker
+
+```sh
+docker compose up -d --build    # http://<this machine>:3000
+docker compose run --rm app bun run user:create <username>
+docker compose run --rm app bun run user:admin <username>   # optional
+```
+
+The database lives in `./data` on the host, mounted at `/data` in the container. To keep it elsewhere, set `DATA_DIR`, either in the shell or in a `.env` file next to `compose.yaml`:
+
+```sh
+DATA_DIR=/srv/better-health   # host directory for the database and backups
+HTTP_PORT=3000                # host port
+PUID=1000                     # files in DATA_DIR are owned by this user and group
+PGID=1000
+COOKIE_SECURE=false           # set to true when the app is only reached over HTTPS
+```
+
+The directory is created if it is missing and handed to `PUID:PGID` on every start; the app itself never runs as root. Leave `COOKIE_SECURE=false` when browsing to `http://<machine>:3000`: browsers drop HTTPS-only cookies on plain HTTP, and signing in would silently fail. Set it to `true` when the app sits behind HTTPS, for example `tailscale serve --bg 3000` on the host, which the PWA install needs anyway.
+
+To upgrade, pull and rebuild:
+
+```sh
+git pull
+docker compose up -d --build
+```
+
+Migrations run when the container starts, and when a release brings new ones the database is first backed up to `DATA_DIR/backups/`. The other user commands work the same way (`docker compose run --rm app bun run user:list`, and so on), as does `bun run db:backup`. Logs: `docker compose logs -f`. To restore a backup, `docker compose down`, copy it over `DATA_DIR/better-health.db`, delete the `-wal` and `-shm` files next to it, and `docker compose up -d`.
+
+Unlike `bun run deploy`, building the image does not run the test suite; run `bun run test` first if you want that check.
+
 ## Deploying to the homelab
 
 ### Prerequisites

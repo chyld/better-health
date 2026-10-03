@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "./schema";
 
-const migrationsFolder = join(import.meta.dir, "../../drizzle");
+export const migrationsFolder = join(import.meta.dir, "../../drizzle");
 
 export function openDb(path: string) {
   const sqlite = new Database(path, { create: true, strict: true });

@@ -1,0 +1,16 @@
+# Only what the image build needs; never the database.
+**/node_modules
+**/dist
+data
+*.db
+*.db-*
+.git
+.env
+.env.*
+coverage
+test-results
+playwright-report
+tests
+**/*.test.ts
+**/*.test.tsx
+**/tests

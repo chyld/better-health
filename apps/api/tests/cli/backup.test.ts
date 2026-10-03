@@ -4,7 +4,7 @@ import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "../../src/db/client";
-import { backupDatabase } from "../../src/ops/backup";
+import { backupDatabase, hasPendingMigrations } from "../../src/ops/backup";
 import { makeDay, makeUser } from "../helpers/factories";
 
 let dir: string;
@@ -47,5 +47,28 @@ describe("backupDatabase", () => {
       "better-health-2026-10-04T00-00-00-000Z.db",
       "better-health-2026-10-05T00-00-00-000Z.db",
     ]);
+  });
+});
+
+describe("hasPendingMigrations", () => {
+  test("false when there is no database yet", () => {
+    expect(hasPendingMigrations(join(dir, "missing.db"))).toBe(false);
+  });
+
+  test("false once every migration is applied, true when one is missing", () => {
+    const dbPath = join(dir, "live.db");
+    const db = openDb(dbPath);
+    expect(hasPendingMigrations(dbPath)).toBe(false);
+    db.$client.run(
+      "DELETE FROM __drizzle_migrations WHERE created_at = (SELECT max(created_at) FROM __drizzle_migrations)",
+    );
+    expect(hasPendingMigrations(dbPath)).toBe(true);
+    db.$client.close();
+  });
+
+  test("true for a database that predates migration tracking", () => {
+    const dbPath = join(dir, "old.db");
+    new Database(dbPath).close();
+    expect(hasPendingMigrations(dbPath)).toBe(true);
   });
 });

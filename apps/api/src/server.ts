@@ -16,7 +16,7 @@ if (swept > 0) console.log(`Removed ${swept} expired session(s).`);
 
 const api = createApp({
   db,
-  cookieSecure: env.NODE_ENV === "production",
+  cookieSecure: env.COOKIE_SECURE ?? env.NODE_ENV === "production",
   testSupport: env.NODE_ENV === "test",
 });
 const distDir = join(import.meta.dir, "../../web/dist");

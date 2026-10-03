@@ -1,0 +1,20 @@
+# docker compose up -d   →   http://<this machine>:3000
+#
+# Settings come from the environment or a .env file next to this one:
+#   DATA_DIR       host directory holding the database and backups   (default ./data)
+#   HTTP_PORT      host port to publish                              (default 3000)
+#   PUID / PGID    owner of the files in DATA_DIR                    (default 1000)
+#   COOKIE_SECURE  true when the app is only ever reached over HTTPS (default false)
+services:
+  app:
+    build: .
+    image: better-health
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+    volumes:
+      - "${DATA_DIR:-./data}:/data"
+    environment:
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"

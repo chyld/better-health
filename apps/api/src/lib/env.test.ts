@@ -17,6 +17,13 @@ describe("loadEnv", () => {
     expect(env.NODE_ENV).toBe("test");
   });
 
+  test("COOKIE_SECURE is optional and must be true or false", () => {
+    expect(loadEnv({}).COOKIE_SECURE).toBeUndefined();
+    expect(loadEnv({ COOKIE_SECURE: "true" }).COOKIE_SECURE).toBe(true);
+    expect(loadEnv({ COOKIE_SECURE: "false" }).COOKIE_SECURE).toBe(false);
+    expect(() => loadEnv({ COOKIE_SECURE: "yes" })).toThrow(/Invalid environment/);
+  });
+
   test("fails fast on bad values", () => {
     expect(() => loadEnv({ PORT: "abc" })).toThrow(/Invalid environment/);
     expect(() => loadEnv({ NODE_ENV: "staging" })).toThrow(/Invalid environment/);
