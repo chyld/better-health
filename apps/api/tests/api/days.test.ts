@@ -157,18 +157,20 @@ describe("GET /api/months/:month", () => {
       note: "hi",
     });
     const type = (await (
-      await s.json(
-        "/api/exercise-types",
-        "POST",
-        { category: "cardio", name: "Walking", unit: "miles" },
-        s.cookie,
-      )
+      await s.json("/api/exercise-types", "POST", { category: "cardio", name: "Walking" }, s.cookie)
     ).json()) as { id: number };
-    for (const amount of [3, 1]) {
+    for (const measurements of [
+      [{ unit: "miles", amount: 3 }],
+      [
+        { unit: "miles", amount: 1 },
+        { unit: "minutes", amount: 20 },
+      ],
+      [],
+    ]) {
       await s.json(
         "/api/days/2026-10-02/exercises",
         "POST",
-        { exerciseTypeId: type.id, amount },
+        { exerciseTypeId: type.id, measurements },
         s.cookie,
       );
     }
@@ -179,8 +181,12 @@ describe("GET /api/months/:month", () => {
       caloriesOut: 2600,
       net: -750,
       weightLbs: 182.4,
-      exerciseCount: 2,
-      exerciseTotals: [{ exerciseTypeId: type.id, amount: 4 }],
+      exerciseCount: 3,
+      exerciseTotals: [
+        { exerciseTypeId: type.id, unit: null, amount: 3 },
+        { exerciseTypeId: type.id, unit: "miles", amount: 4 },
+        { exerciseTypeId: type.id, unit: "minutes", amount: 20 },
+      ],
       hasNote: true,
     });
   });

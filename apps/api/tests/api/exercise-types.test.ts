@@ -7,13 +7,13 @@ async function setup() {
   const { cookie } = await t.signedInUser("alice");
   const send = (method: string, path: string, body?: unknown) =>
     body === undefined ? t.request(path, { method, cookie }) : t.json(path, method, body, cookie);
-  const create = async (name: string, unit = "reps", category = "strength") =>
-    (await (
-      await send("POST", "/api/exercise-types", { category: "cardio", name, unit })
-    ).json()) as ExerciseType;
+  const create = async (name: string, category = "cardio") =>
+    (await (await send("POST", "/api/exercise-types", { category, name })).json()) as ExerciseType;
+  const log = (date: string, exerciseTypeId: number, measurements: unknown[] = []) =>
+    send("POST", `/api/days/${date}/exercises`, { exerciseTypeId, measurements });
   const list = async (query = "") =>
     (await (await send("GET", `/api/exercise-types${query}`)).json()) as ExerciseType[];
-  return { ...t, cookie, send, create, list };
+  return { ...t, cookie, send, create, list, log };
 }
 
 describe("exercise labels", () => {
@@ -22,65 +22,47 @@ describe("exercise labels", () => {
     expect(await s.list()).toEqual([]);
   });
 
-  test("creates name + category + unit labels in order", async () => {
+  test("creates name + category labels in order", async () => {
     const s = await setup();
     const res = await s.send("POST", "/api/exercise-types", {
       name: "  Walking ",
       category: " cardio ",
-      unit: " miles ",
     });
     expect(res.status).toBe(201);
     expect(await res.json()).toEqual({
       id: expect.any(Number),
       name: "Walking",
       category: "cardio",
-      unit: "miles",
       sortOrder: 0,
       archived: false,
       lastUsedOn: null,
+      units: [],
     });
-    await s.create("Pushups", "reps");
-    expect((await s.list()).map((t) => [t.name, t.unit, t.sortOrder])).toEqual([
-      ["Walking", "miles", 0],
-      ["Pushups", "reps", 1],
+    await s.create("Pushups", "strength");
+    expect((await s.list()).map((t) => [t.name, t.category, t.sortOrder])).toEqual([
+      ["Walking", "cardio", 0],
+      ["Pushups", "strength", 1],
     ]);
   });
 
-  test("the same name with a different unit is a separate label", async () => {
+  test("rejects a duplicate name regardless of case or category", async () => {
     const s = await setup();
-    await s.create("Walking", "miles");
+    await s.create("Walking");
     const res = await s.send("POST", "/api/exercise-types", {
-      category: "cardio",
-      name: "Walking",
-      unit: "minutes",
-    });
-    expect(res.status).toBe(201);
-    expect((await s.list()).map((t) => t.unit)).toEqual(["miles", "minutes"]);
-  });
-
-  test("rejects a duplicate name + unit regardless of case", async () => {
-    const s = await setup();
-    await s.create("Walking", "miles");
-    const res = await s.send("POST", "/api/exercise-types", {
-      category: "cardio",
+      category: "outdoors",
       name: "WALKING",
-      unit: "Miles",
     });
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({
-      error: { code: "conflict", message: '"Walking (miles)" already exists' },
+      error: { code: "conflict", message: '"Walking" already exists' },
     });
   });
 
   test("a duplicate of an archived label suggests unarchiving", async () => {
     const s = await setup();
-    const yoga = await s.create("Yoga", "minutes");
+    const yoga = await s.create("Yoga");
     await s.send("PATCH", `/api/exercise-types/${yoga.id}`, { archived: true });
-    const res = await s.send("POST", "/api/exercise-types", {
-      category: "cardio",
-      name: "yoga",
-      unit: "minutes",
-    });
+    const res = await s.send("POST", "/api/exercise-types", { category: "cardio", name: "yoga" });
     expect(res.status).toBe(409);
     expect(((await res.json()) as { error: { message: string } }).error.message).toContain(
       "unarchive",
@@ -88,80 +70,65 @@ describe("exercise labels", () => {
   });
 
   test.each([
-    { name: "", category: "cardio", unit: "miles" },
-    { name: "   ", category: "cardio", unit: "miles" },
-    { name: "x".repeat(51), category: "cardio", unit: "miles" },
-    { name: "Walking", category: "cardio" },
-    { name: "Walking", category: "cardio", unit: "" },
-    { name: "Walking", category: "cardio", unit: "x".repeat(21) },
-    { name: "Walking", unit: "miles" },
-    { name: "Walking", category: "  ", unit: "miles" },
-    { name: "Walking", category: "x".repeat(31), unit: "miles" },
+    { name: "", category: "cardio" },
+    { name: "   ", category: "cardio" },
+    { name: "x".repeat(51), category: "cardio" },
+    { name: "Walking", category: "cardio", unit: "miles" },
+    { name: "Walking" },
+    { name: "Walking", category: "  " },
+    { name: "Walking", category: "x".repeat(31) },
     {},
-    { name: 5, category: "cardio", unit: "miles" },
+    { name: 5, category: "cardio" },
   ])("rejects %p", async (body) => {
     const s = await setup();
     expect((await s.send("POST", "/api/exercise-types", body)).status).toBe(400);
   });
 
-  test("renames a label and changes its unit; past entries follow", async () => {
+  test("renames a label; past entries follow", async () => {
     const s = await setup();
-    const walk = await s.create("Walk", "mi");
-    await s.send("POST", "/api/days/2026-10-01/exercises", { exerciseTypeId: walk.id, amount: 3 });
-    const res = await s.send("PATCH", `/api/exercise-types/${walk.id}`, {
-      name: "Walking",
-      unit: "miles",
-    });
+    const walk = await s.create("Walk");
+    await s.log("2026-10-01", walk.id, [{ unit: "miles", amount: 3 }]);
+    const res = await s.send("PATCH", `/api/exercise-types/${walk.id}`, { name: "Walking" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ name: "Walking", unit: "miles" });
+    expect(await res.json()).toMatchObject({ name: "Walking", units: ["miles"] });
     const day = (await (await s.send("GET", "/api/days/2026-10-01")).json()) as {
-      exercises: { name: string; unit: string; amount: number }[];
+      exercises: unknown[];
     };
-    expect(day.exercises[0]).toMatchObject({ name: "Walking", unit: "miles", amount: 3 });
+    expect(day.exercises[0]).toMatchObject({
+      name: "Walking",
+      measurements: [{ unit: "miles", amount: 3 }],
+    });
   });
 
   test("changes a label's category; past entries follow", async () => {
     const s = await setup();
-    const walk = await s.create("Walking", "miles", "cardio");
-    await s.send("POST", "/api/days/2026-10-01/exercises", { exerciseTypeId: walk.id, amount: 3 });
+    const walk = await s.create("Walking", "cardio");
+    await s.log("2026-10-01", walk.id);
     const res = await s.send("PATCH", `/api/exercise-types/${walk.id}`, { category: " outdoors " });
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({
-      name: "Walking",
-      category: "outdoors",
-      unit: "miles",
-    });
+    expect(await res.json()).toMatchObject({ name: "Walking", category: "outdoors" });
     const day = (await (await s.send("GET", "/api/days/2026-10-01")).json()) as {
       exercises: { category: string }[];
     };
     expect(day.exercises[0]?.category).toBe("outdoors");
     const blank = await s.send("PATCH", `/api/exercise-types/${walk.id}`, { category: "" });
     expect(blank.status).toBe(400);
-  });
-
-  test("the same name and unit in another category is still a duplicate", async () => {
-    const s = await setup();
-    await s.create("Walking", "miles", "cardio");
-    const res = await s.send("POST", "/api/exercise-types", {
-      name: "Walking",
-      category: "outdoors",
-      unit: "miles",
-    });
-    expect(res.status).toBe(409);
+    const unit = await s.send("PATCH", `/api/exercise-types/${walk.id}`, { unit: "miles" });
+    expect(unit.status).toBe(400);
   });
 
   test("changing only the case of the name is allowed", async () => {
     const s = await setup();
-    const yoga = await s.create("yoga", "minutes");
+    const yoga = await s.create("yoga");
     const res = await s.send("PATCH", `/api/exercise-types/${yoga.id}`, { name: "Yoga" });
     expect(res.status).toBe(200);
   });
 
   test("an edit that collides with another label conflicts", async () => {
     const s = await setup();
-    await s.create("Walking", "miles");
-    const other = await s.create("Walking", "minutes");
-    const res = await s.send("PATCH", `/api/exercise-types/${other.id}`, { unit: "MILES" });
+    await s.create("Walking");
+    const other = await s.create("Running");
+    const res = await s.send("PATCH", `/api/exercise-types/${other.id}`, { name: "WALKING" });
     expect(res.status).toBe(409);
   });
 
@@ -180,14 +147,18 @@ describe("exercise labels", () => {
 
   test("an archived label still shows on past entries", async () => {
     const s = await setup();
-    const yoga = await s.create("Yoga", "minutes");
-    await s.send("POST", "/api/days/2026-10-01/exercises", { exerciseTypeId: yoga.id, amount: 60 });
+    const yoga = await s.create("Yoga");
+    await s.log("2026-10-01", yoga.id, [{ unit: "minutes", amount: 60 }]);
     await s.send("PATCH", `/api/exercise-types/${yoga.id}`, { archived: true });
     const day = (await (await s.send("GET", "/api/days/2026-10-01")).json()) as {
       exercises: unknown[];
     };
     expect(day.exercises).toEqual([
-      expect.objectContaining({ name: "Yoga", unit: "minutes", archived: true, amount: 60 }),
+      expect.objectContaining({
+        name: "Yoga",
+        archived: true,
+        measurements: [{ unit: "minutes", amount: 60 }],
+      }),
     ]);
   });
 
@@ -204,11 +175,28 @@ describe("exercise labels", () => {
     const yoga = await s.create("Yoga");
     await s.create("Running");
     for (const date of ["2026-09-30", "2026-10-05", "2026-10-01"]) {
-      await s.send("POST", `/api/days/${date}/exercises`, { exerciseTypeId: yoga.id, amount: 1 });
+      await s.log(date, yoga.id);
     }
     expect((await s.list()).map((t) => [t.name, t.lastUsedOn])).toEqual([
       ["Yoga", "2026-10-05"],
       ["Running", null],
+    ]);
+  });
+
+  test("lists the units measured with each label, most recently used first", async () => {
+    const s = await setup();
+    const run = await s.create("Running");
+    const yoga = await s.create("Yoga");
+    await s.log("2026-10-01", run.id, [
+      { unit: "miles", amount: 3 },
+      { unit: "minutes", amount: 30 },
+    ]);
+    await s.log("2026-10-03", run.id, [{ unit: "km", amount: 5 }]);
+    await s.log("2026-10-02", run.id, [{ unit: "Miles", amount: 2 }]);
+    await s.log("2026-10-02", yoga.id);
+    expect((await s.list()).map((t) => [t.name, t.units])).toEqual([
+      ["Running", ["km", "miles", "minutes"]],
+      ["Yoga", []],
     ]);
   });
 

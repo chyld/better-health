@@ -7,20 +7,23 @@ test("lists every day with anything logged, newest first, with its exercises", a
   const { cookie } = await t.signedInUser("alice");
   const patch = (date: string, body: unknown) => t.json(`/api/days/${date}`, "PATCH", body, cookie);
   const walking = (await (
-    await t.json(
-      "/api/exercise-types",
-      "POST",
-      { name: "Walking", category: "cardio", unit: "miles" },
-      cookie,
-    )
+    await t.json("/api/exercise-types", "POST", { name: "Walking", category: "cardio" }, cookie)
   ).json()) as ExerciseType;
-  const addExercise = (date: string, amount: number) =>
-    t.json(`/api/days/${date}/exercises`, "POST", { exerciseTypeId: walking.id, amount }, cookie);
+  const addExercise = (date: string, amount?: number) =>
+    t.json(
+      `/api/days/${date}/exercises`,
+      "POST",
+      {
+        exerciseTypeId: walking.id,
+        measurements: amount === undefined ? [] : [{ unit: "miles", amount }],
+      },
+      cookie,
+    );
 
   await patch("2026-09-15", { caloriesIn: 1800, caloriesOut: 2400, note: "older" });
   await patch("2026-10-02", { weightLbs: 182.4 });
   await addExercise("2026-10-02", 3);
-  await addExercise("2026-10-02", 1.5);
+  await addExercise("2026-10-02");
   await addExercise("2026-10-01", 2);
 
   const res = await t.request("/api/log", { cookie });
@@ -28,9 +31,9 @@ test("lists every day with anything logged, newest first, with its exercises", a
   const days = (await res.json()) as DayDetail[];
   expect(days.map((d) => d.date)).toEqual(["2026-10-02", "2026-10-01", "2026-09-15"]);
   expect(days[0]).toMatchObject({ weightLbs: 182.4, caloriesIn: null, note: null });
-  expect(days[0]?.exercises.map((e) => [e.name, e.category, e.unit, e.amount])).toEqual([
-    ["Walking", "cardio", "miles", 3],
-    ["Walking", "cardio", "miles", 1.5],
+  expect(days[0]?.exercises.map((e) => [e.name, e.category, e.measurements])).toEqual([
+    ["Walking", "cardio", [{ unit: "miles", amount: 3 }]],
+    ["Walking", "cardio", []],
   ]);
   expect(days[1]).toMatchObject({ caloriesIn: null, weightLbs: null, note: null });
   expect(days[1]?.exercises).toHaveLength(1);

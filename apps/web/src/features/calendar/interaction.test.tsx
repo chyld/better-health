@@ -60,18 +60,13 @@ describe("keyboard on desktop", () => {
     expect(history.location.search).toContain("day=2026-10-02");
   });
 
-  test("e opens the add-exercise form and Escape closes it", async () => {
+  test("e moves focus to the exercise stickers", async () => {
     fake.addType("Walking");
     const { user } = renderApp("/");
     const panel = await screen.findByRole("complementary", { name: "Day details" });
-    await within(panel).findByLabelText("Calories in");
+    const sticker = await within(panel).findByRole("button", { name: "Log Walking" });
     await user.keyboard("e");
-    const form = await within(panel).findByRole("form", { name: "Add exercise" });
-    await user.click(within(form).getByLabelText("Amount"));
-    await user.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(within(panel).queryByRole("form", { name: "Add exercise" })).toBeNull(),
-    );
+    expect(sticker).toHaveFocus();
   });
 
   test("shortcuts are ignored while typing", async () => {

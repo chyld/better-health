@@ -7,7 +7,6 @@ import {
   formatCompact,
   formatNumber,
   formatWeight,
-  labelText,
 } from "./calendar";
 import { datesInMonth } from "./dates";
 
@@ -131,11 +130,20 @@ describe("formatAmount", () => {
   });
 });
 
-describe("labelText / entryText", () => {
-  test("show the unit when there is one", () => {
-    expect(labelText({ name: "Walking", unit: "miles" })).toBe("Walking (miles)");
-    expect(labelText({ name: "Walking", unit: "" })).toBe("Walking");
-    expect(entryText({ name: "Walking", unit: "miles", amount: 3 })).toBe("Walking – 3 miles");
-    expect(entryText({ name: "Pushups", unit: "", amount: 50 })).toBe("Pushups – 50");
+describe("entryText", () => {
+  test("lists measurements after the name, or just the name without any", () => {
+    expect(entryText({ name: "Walking", measurements: [{ unit: "miles", amount: 3 }] })).toBe(
+      "Walking – 3 miles",
+    );
+    expect(
+      entryText({
+        name: "Running",
+        measurements: [
+          { unit: "miles", amount: 3.5 },
+          { unit: "minutes", amount: 30 },
+        ],
+      }),
+    ).toBe("Running – 3.5 miles, 30 minutes");
+    expect(entryText({ name: "Yoga", measurements: [] })).toBe("Yoga");
   });
 });

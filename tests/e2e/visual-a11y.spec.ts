@@ -31,13 +31,13 @@ test("calendar with data: accessible and matches the snapshot", async ({ page })
   const origin = new URL(page.url()).origin;
   const label = await (
     await page.request.post("/api/exercise-types", {
-      data: { name: "Walking", category: "cardio", unit: "miles" },
+      data: { name: "Walking", category: "cardio" },
       headers: { origin },
     })
   ).json();
-  for (const amount of [3, 1.5]) {
+  for (const measurements of [[{ unit: "miles", amount: 3 }], []]) {
     await page.request.post("/api/days/2026-10-01/exercises", {
-      data: { exerciseTypeId: label.id, amount },
+      data: { exerciseTypeId: label.id, measurements },
       headers: { origin },
     });
   }
@@ -49,9 +49,28 @@ test("calendar with data: accessible and matches the snapshot", async ({ page })
   await expect(page).toHaveScreenshot("calendar.png", { fullPage: true });
 });
 
-test("open day is accessible", async ({ page }) => {
+test("open day is accessible, with stickers and a measured exercise", async ({ page }) => {
   await login(page);
-  await openDay(page, "2026-10-02");
+  const origin = new URL(page.url()).origin;
+  for (const [name, category] of [
+    ["Running", "cardio"],
+    ["Squats", "strength"],
+  ]) {
+    await page.request.post("/api/exercise-types", {
+      data: { name, category },
+      headers: { origin },
+    });
+  }
+  await page.reload();
+  const day = await openDay(page, "2026-10-02");
+  await day.getByRole("button", { name: "Log Running" }).click();
+  await day.getByRole("button", { name: "Measure Running" }).click();
+  const form = day.getByRole("form", { name: "Measure Running" });
+  await form.getByLabel("Amount").fill("3");
+  await form.getByLabel("Unit", { exact: true }).fill("miles");
+  await form.getByRole("button", { name: "Save" }).click();
+  await expect(day.getByRole("button", { name: "Delete Running – 3 miles" })).toBeVisible();
+  await day.getByRole("button", { name: "Measure Running" }).click();
   await expectNoA11yViolations(page);
 });
 
@@ -61,7 +80,6 @@ test("labels page is accessible", async ({ page }) => {
   const form = page.getByRole("form", { name: "Add label" });
   await form.getByLabel("Exercise").fill("Yoga");
   await form.getByLabel("Category").fill("flexibility");
-  await form.getByLabel("Unit").fill("minutes");
   await form.getByRole("button", { name: "Add" }).click();
   await expect(page.getByRole("list", { name: "Active" })).toBeVisible();
   await expectNoA11yViolations(page);

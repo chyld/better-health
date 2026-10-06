@@ -8,7 +8,6 @@ import {
   type HighlightOperator,
   type HighlightRule,
   type HighlightRuleCreate,
-  labelText,
   matchHighlight,
 } from "@better-health/shared";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -56,15 +55,15 @@ export const OPERATOR_TEXT: Record<HighlightOperator, string> = {
   ">": ">",
 };
 
-/** "Weight < 200 lbs", "Net calories ≤ −500 cal", "Walking (miles) ≥ 3 miles". */
+/** "Weight < 200 lbs", "Net calories ≤ −500 cal", "Walking ≥ 3 miles", "Yoga ≥ 2 times". */
 export function describeRule(rule: HighlightRule, labels: readonly ExerciseType[]): string {
   const op = OPERATOR_TEXT[rule.operator];
   switch (rule.metric) {
     case "exercise": {
       const label = labels.find((l) => l.id === rule.exerciseTypeId);
-      const name = label ? labelText(label) : "Exercise";
-      const unit = label?.unit ? ` ${label.unit}` : "";
-      return `${name} ${op} ${formatAmount(rule.target)}${unit}`;
+      const name = label?.name ?? "Exercise";
+      const unit = rule.unit ?? (rule.target === 1 ? "time" : "times");
+      return `${name} ${op} ${formatAmount(rule.target)} ${unit}`;
     }
     case "weight":
       return `Weight ${op} ${formatWeight(rule.target)} lbs`;

@@ -9,9 +9,19 @@ export interface DaySummary {
   net: number | null;
   weightLbs: number | null;
   exerciseCount: number;
-  /** The day's total amount for each exercise label logged on it. */
-  exerciseTotals: { exerciseTypeId: number; amount: number }[];
+  /**
+   * For each label logged on the day: how many times (unit null), and the total of each unit
+   * measured, e.g. Running ×2, Running 5 miles.
+   */
+  exerciseTotals: ExerciseTotal[];
   hasNote: boolean;
+}
+
+export interface ExerciseTotal {
+  exerciseTypeId: number;
+  /** null counts the label's entries; otherwise the sum of that unit's measurements. */
+  unit: string | null;
+  amount: number;
 }
 
 export interface MonthResponse {
@@ -25,10 +35,17 @@ export interface ExerciseEntry {
   name: string;
   /** Empty for labels created before categories existed. */
   category: string;
-  unit: string;
   archived: boolean;
-  amount: number;
+  /** Optional: an entry with none just records that the exercise was done. */
+  measurements: Measurement[];
   createdAt: string;
+}
+
+/** How much of an exercise, such as 3 miles or 30 minutes. */
+export interface Measurement {
+  /** Lowercase. */
+  unit: string;
+  amount: number;
 }
 
 export interface DayDetail {
@@ -60,11 +77,11 @@ export interface ExerciseType {
   name: string;
   /** Empty only for labels created before categories existed. */
   category: string;
-  /** Empty only for labels created before units existed. */
-  unit: string;
   sortOrder: number;
   archived: boolean;
   lastUsedOn: string | null;
+  /** Units measured with this label so far, most recently used first. */
+  units: string[];
 }
 
 /** Colours a calendar cell when the day's value for a metric meets a condition. */
@@ -73,6 +90,8 @@ export interface HighlightRule {
   metric: HighlightMetric;
   /** Set only when `metric` is "exercise". */
   exerciseTypeId: number | null;
+  /** For exercise rules: the unit whose total is compared, or null to count entries. */
+  unit: string | null;
   operator: HighlightOperator;
   target: number;
   color: HighlightColor;

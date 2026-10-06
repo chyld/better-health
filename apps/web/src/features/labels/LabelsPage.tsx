@@ -1,10 +1,4 @@
-import {
-  EXERCISE_CATEGORY_MAX,
-  EXERCISE_NAME_MAX,
-  EXERCISE_UNIT_MAX,
-  type ExerciseType,
-  labelText,
-} from "@better-health/shared";
+import { EXERCISE_CATEGORY_MAX, EXERCISE_NAME_MAX, type ExerciseType } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, ArrowUp, Pencil, Tags } from "lucide-react";
@@ -92,7 +86,7 @@ export function LabelsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={`Move ${labelText(t)} up`}
+                    aria-label={`Move ${t.name} up`}
                     disabled={i === 0 || mutations.reorder.isPending}
                     onClick={() => move(i, -1)}
                   >
@@ -101,7 +95,7 @@ export function LabelsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={`Move ${labelText(t)} down`}
+                    aria-label={`Move ${t.name} down`}
                     disabled={i === active.length - 1 || mutations.reorder.isPending}
                     onClick={() => move(i, 1)}
                   >
@@ -110,7 +104,7 @@ export function LabelsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={`Archive ${labelText(t)}`}
+                    aria-label={`Archive ${t.name}`}
                     onClick={() => mutations.update.mutate({ id: t.id, archived: true })}
                   >
                     <Archive />
@@ -139,7 +133,7 @@ export function LabelsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={`Unarchive ${labelText(t)}`}
+                  aria-label={`Unarchive ${t.name}`}
                   onClick={() => mutations.update.mutate({ id: t.id, archived: false })}
                 >
                   <ArchiveRestore />
@@ -156,17 +150,15 @@ export function LabelsPage() {
 interface LabelFields {
   name: string;
   category: string;
-  unit: string;
 }
 
 const trimmed = (f: LabelFields): LabelFields => ({
   name: f.name.trim(),
   category: f.category.trim(),
-  unit: f.unit.trim(),
 });
-const complete = (f: LabelFields) => Boolean(f.name.trim() && f.category.trim() && f.unit.trim());
+const complete = (f: LabelFields) => Boolean(f.name.trim() && f.category.trim());
 
-/** Name, category and unit inputs, shared by the add and edit forms. */
+/** Name and category inputs, shared by the add and edit forms. */
 function LabelInputs({
   value,
   onChange,
@@ -182,8 +174,8 @@ function LabelInputs({
   const set = (key: keyof LabelFields) => (e: ChangeEvent<HTMLInputElement>) =>
     onChange({ ...value, [key]: e.target.value });
   return (
-    <div className="grid min-w-0 flex-1 basis-full grid-cols-2 gap-2 sm:basis-0 sm:grid-cols-[3fr_2fr_2fr]">
-      <div className="col-span-2 space-y-1 sm:col-span-1">
+    <div className="grid min-w-0 flex-1 basis-full grid-cols-2 gap-2 sm:basis-0 sm:grid-cols-[3fr_2fr]">
+      <div className="space-y-1">
         <Label htmlFor={`${id}-name`} className="text-xs">
           Exercise
         </Label>
@@ -210,23 +202,11 @@ function LabelInputs({
           onChange={set("category")}
         />
       </div>
-      <div className="space-y-1">
-        <Label htmlFor={`${id}-unit`} className="text-xs">
-          Unit
-        </Label>
-        <Input
-          id={`${id}-unit`}
-          placeholder="e.g. miles"
-          value={value.unit}
-          maxLength={EXERCISE_UNIT_MAX}
-          onChange={set("unit")}
-        />
-      </div>
     </div>
   );
 }
 
-const EMPTY: LabelFields = { name: "", category: "", unit: "" };
+const EMPTY: LabelFields = { name: "", category: "" };
 
 function AddLabelForm({ categoryList }: { categoryList: string }) {
   const { create } = useLabelMutations();
@@ -278,7 +258,7 @@ function LabelRow({
 }) {
   const { update } = useLabelMutations();
   const [editing, setEditing] = useState(false);
-  const saved: LabelFields = { name: label.name, category: label.category, unit: label.unit };
+  const saved: LabelFields = { name: label.name, category: label.category };
   const [fields, setFields] = useState(saved);
 
   function cancel() {
@@ -291,7 +271,7 @@ function LabelRow({
     event.preventDefault();
     if (!complete(fields)) return;
     const next = trimmed(fields);
-    if (next.name === label.name && next.category === label.category && next.unit === label.unit) {
+    if (next.name === label.name && next.category === label.category) {
       return cancel();
     }
     update.mutate({ id: label.id, ...next }, { onSuccess: () => setEditing(false) });
@@ -303,7 +283,7 @@ function LabelRow({
         <form
           onSubmit={submit}
           onKeyDown={(e) => e.key === "Escape" && cancel()}
-          aria-label={`Edit ${labelText(label)}`}
+          aria-label={`Edit ${label.name}`}
           className="flex flex-wrap items-end gap-2"
         >
           <LabelInputs value={fields} onChange={setFields} categoryList={categoryList} autoFocus />
@@ -346,16 +326,11 @@ function LabelRow({
         ) : (
           <span className="text-destructive"> · no category, edit to add one</span>
         )}
-        {label.unit ? (
-          <span className="text-muted-foreground"> · {label.unit}</span>
-        ) : (
-          <span className="text-destructive"> · no unit, edit to add one</span>
-        )}
       </span>
       <Button
         variant="ghost"
         size="icon"
-        aria-label={`Edit ${labelText(label)}`}
+        aria-label={`Edit ${label.name}`}
         onClick={() => setEditing(true)}
       >
         <Pencil />

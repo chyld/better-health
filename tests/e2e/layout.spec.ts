@@ -27,9 +27,15 @@ test("the log-today button opens today on phones and tablets", async ({ page }) 
   ).toBeVisible();
 });
 
-test("desktop keyboard: arrows move days, [ ] change month, e adds exercise", async ({ page }) => {
+test("desktop keyboard: arrows move days, [ ] change month, e logs exercise", async ({ page }) => {
   await login(page);
   test.skip(!isDesktop(page), "keyboard shortcuts are for desktop");
+  await page.request.post("/api/exercise-types", {
+    data: { name: "Walking", category: "cardio" },
+    headers: { origin: new URL(page.url()).origin },
+  });
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Log Walking" })).toBeVisible();
   await cell(page, "2026-10-02").focus();
   await page.keyboard.press("ArrowRight");
   await expect(cell(page, "2026-10-03")).toBeFocused();
@@ -38,9 +44,8 @@ test("desktop keyboard: arrows move days, [ ] change month, e adds exercise", as
   await expect(cell(page, "2026-10-10")).toBeFocused();
 
   await page.keyboard.press("e");
-  await expect(page.getByText("No exercise labels yet.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log Walking" })).toBeFocused();
 
-  await page.keyboard.press("Escape");
   await cell(page, "2026-10-10").focus();
   await page.keyboard.press("]");
   await expect(page.getByRole("heading", { name: "November 2026" })).toBeVisible();

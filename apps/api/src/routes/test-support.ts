@@ -1,7 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv, Deps } from "../context";
-import { dailyLogs, exerciseEntries, exerciseTypes, sessions, users } from "../db/schema";
+import {
+  dailyLogs,
+  exerciseEntries,
+  exerciseMeasurements,
+  exerciseTypes,
+  sessions,
+  users,
+} from "../db/schema";
 import { validate } from "../lib/validate";
 import { createUser, setAdmin } from "../services/users";
 
@@ -17,7 +24,14 @@ export function testSupportRoutes(deps: Deps) {
     })
     .post("/reset", async (c) => {
       deps.db.transaction((tx) => {
-        for (const table of [exerciseEntries, exerciseTypes, dailyLogs, sessions, users]) {
+        for (const table of [
+          exerciseMeasurements,
+          exerciseEntries,
+          exerciseTypes,
+          dailyLogs,
+          sessions,
+          users,
+        ]) {
           tx.delete(table).run();
         }
       });

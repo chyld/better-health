@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { exerciseUnitSchema } from "./schemas";
 import type { DaySummary, HighlightRule } from "./types";
 
 export const HIGHLIGHT_METRICS = ["in", "out", "net", "weight", "exercise"] as const;
@@ -26,6 +27,8 @@ export const highlightRuleCreateSchema = z
   .strictObject({
     metric: z.enum(HIGHLIGHT_METRICS),
     exerciseTypeId: z.number().int().positive().nullable(),
+    /** Exercise rules only: the unit to total, or null to count how many times. */
+    unit: exerciseUnitSchema.nullable().default(null),
     operator: z.enum(HIGHLIGHT_OPERATORS),
     target: z
       .number()
@@ -40,8 +43,12 @@ export const highlightRuleCreateSchema = z
   .refine((r) => (r.metric === "exercise") === (r.exerciseTypeId !== null), {
     message: "Pick an exercise label for an exercise rule, and only then",
     path: ["exerciseTypeId"],
+  })
+  .refine((r) => r.metric === "exercise" || r.unit === null, {
+    message: "Only exercise rules have a unit",
+    path: ["unit"],
   });
-export type HighlightRuleCreate = z.infer<typeof highlightRuleCreateSchema>;
+export type HighlightRuleCreate = z.input<typeof highlightRuleCreateSchema>;
 
 export const highlightRuleOrderSchema = z.strictObject({
   ids: z
@@ -53,7 +60,7 @@ export const highlightRuleOrderSchema = z.strictObject({
 /** The day's value for a rule's metric, or null when nothing is logged for it. */
 export function highlightValue(
   day: DaySummary,
-  rule: Pick<HighlightRule, "metric" | "exerciseTypeId">,
+  rule: Pick<HighlightRule, "metric" | "exerciseTypeId" | "unit">,
 ): number | null {
   switch (rule.metric) {
     case "in":
@@ -66,7 +73,9 @@ export function highlightValue(
       return day.weightLbs;
     case "exercise":
       return (
-        day.exerciseTotals.find((t) => t.exerciseTypeId === rule.exerciseTypeId)?.amount ?? null
+        day.exerciseTotals.find(
+          (t) => t.exerciseTypeId === rule.exerciseTypeId && t.unit === rule.unit,
+        )?.amount ?? null
       );
   }
 }

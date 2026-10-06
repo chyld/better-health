@@ -30,7 +30,7 @@ export function useLabelMutations() {
   };
   return {
     create: useMutation({
-      mutationFn: (json: { name: string; category: string; unit: string }) =>
+      mutationFn: (json: { name: string; category: string }) =>
         unwrap(api["exercise-types"].$post({ json })),
       onSuccess,
     }),
@@ -42,7 +42,6 @@ export function useLabelMutations() {
         id: number;
         name?: string;
         category?: string;
-        unit?: string;
         archived?: boolean;
       }) => unwrap(api["exercise-types"][":id"].$patch({ param: { id: String(id) }, json })),
       onSuccess: onSuccessWithDays,

@@ -90,56 +90,79 @@ describe("dayPatchSchema", () => {
 });
 
 describe("exercise schemas", () => {
-  test("entry create takes a label and an amount", () => {
-    expect(exerciseEntryCreateSchema.parse({ exerciseTypeId: 1, amount: 3 })).toEqual({
+  test("entry create needs only a label", () => {
+    expect(exerciseEntryCreateSchema.parse({ exerciseTypeId: 1 })).toEqual({
       exerciseTypeId: 1,
-      amount: 3,
+      measurements: [],
     });
-  });
-  test.each([0, -1, 100_001, 3.125, Number.NaN])("entry create rejects amount %p", (amount) => {
-    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, amount }).success).toBe(false);
-  });
-  test.each([0.01, 3, 3.5, 2.25, 100_000])("entry create accepts amount %p", (amount) => {
-    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, amount }).success).toBe(true);
-  });
-  test("entry create requires an amount and rejects notes", () => {
-    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1 }).success).toBe(false);
-    expect(
-      exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, amount: 3, note: "x" }).success,
-    ).toBe(false);
-    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 0, amount: 3 }).success).toBe(
+    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 0 }).success).toBe(false);
+    expect(exerciseEntryCreateSchema.safeParse({ exerciseTypeId: 1, note: "x" }).success).toBe(
       false,
     );
   });
+  test("measurements have a lowercased unit and an amount", () => {
+    expect(
+      exerciseEntryCreateSchema.parse({
+        exerciseTypeId: 1,
+        measurements: [{ unit: " Miles ", amount: 3 }],
+      }).measurements,
+    ).toEqual([{ unit: "miles", amount: 3 }]);
+  });
+  const withAmount = (amount: number) => ({
+    exerciseTypeId: 1,
+    measurements: [{ unit: "miles", amount }],
+  });
+  test.each([0, -1, 100_001, 3.125, Number.NaN])("measurement rejects amount %p", (amount) => {
+    expect(exerciseEntryCreateSchema.safeParse(withAmount(amount)).success).toBe(false);
+  });
+  test.each([0.01, 3, 3.5, 2.25, 100_000])("measurement accepts amount %p", (amount) => {
+    expect(exerciseEntryCreateSchema.safeParse(withAmount(amount)).success).toBe(true);
+  });
+  test("measurements need a unit, at most once each, and at most five", () => {
+    const parse = (measurements: unknown) =>
+      exerciseEntryPatchSchema.safeParse({ measurements }).success;
+    expect(parse([{ unit: "  ", amount: 3 }])).toBe(false);
+    expect(parse([{ unit: "x".repeat(21), amount: 3 }])).toBe(false);
+    expect(parse([{ amount: 3 }])).toBe(false);
+    expect(
+      parse([
+        { unit: "miles", amount: 3 },
+        { unit: "MILES", amount: 4 },
+      ]),
+    ).toBe(false);
+    const units = ["a", "b", "c", "d", "e", "f"].map((unit) => ({ unit, amount: 1 }));
+    expect(parse(units.slice(0, 5))).toBe(true);
+    expect(parse(units)).toBe(false);
+    expect(parse([])).toBe(true);
+  });
   test("entry patch needs at least one field", () => {
     expect(exerciseEntryPatchSchema.safeParse({}).success).toBe(false);
-    expect(exerciseEntryPatchSchema.safeParse({ amount: 4 }).success).toBe(true);
+    expect(exerciseEntryPatchSchema.safeParse({ exerciseTypeId: 2 }).success).toBe(true);
+    expect(exerciseEntryPatchSchema.safeParse({ amount: 4 }).success).toBe(false);
   });
-  test("labels need a trimmed name, category and unit", () => {
-    const walking = { name: "  Walking ", category: " cardio ", unit: " miles " };
+  test("labels need a trimmed name and category, and have no unit", () => {
+    const walking = { name: "  Walking ", category: " cardio " };
     expect(exerciseTypeCreateSchema.parse(walking)).toEqual({
       name: "Walking",
       category: "cardio",
-      unit: "miles",
     });
-    const ok = { name: "Walking", category: "cardio", unit: "miles" };
+    const ok = { name: "Walking", category: "cardio" };
     for (const bad of [
-      { name: "Walking", category: "cardio" },
-      { name: "Walking", unit: "miles" },
-      { ...ok, unit: "  " },
+      { name: "Walking" },
+      { category: "cardio" },
+      { ...ok, unit: "miles" },
       { ...ok, name: "   " },
       { ...ok, category: "  " },
       { ...ok, name: "x".repeat(51) },
-      { ...ok, unit: "x".repeat(21) },
       { ...ok, category: "x".repeat(31) },
     ]) {
       expect(exerciseTypeCreateSchema.safeParse(bad).success).toBe(false);
     }
   });
-  test("label patch accepts name, unit and/or archived", () => {
+  test("label patch accepts name, category and/or archived", () => {
     expect(exerciseTypePatchSchema.safeParse({ archived: true }).success).toBe(true);
-    expect(exerciseTypePatchSchema.safeParse({ unit: "km" }).success).toBe(true);
     expect(exerciseTypePatchSchema.safeParse({ category: "cardio" }).success).toBe(true);
+    expect(exerciseTypePatchSchema.safeParse({ unit: "km" }).success).toBe(false);
     expect(exerciseTypePatchSchema.safeParse({}).success).toBe(false);
   });
   test("order rejects empty and duplicate ids", () => {

@@ -4,10 +4,12 @@ import {
   datesInMonth,
   type ExerciseType,
   type HighlightRule,
+  type Measurement,
   netCalories,
 } from "@better-health/shared";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
+import { exerciseTotals } from "@/features/day/queries";
 
 /** A small in-memory stand-in for the API, enough for component tests. */
 interface DayRow {
@@ -20,14 +22,13 @@ interface EntryRow {
   id: number;
   date: string;
   exerciseTypeId: number;
-  amount: number;
+  measurements: Measurement[];
   createdAt: string;
 }
 interface TypeRow {
   id: number;
   name: string;
   category: string;
-  unit: string;
   sortOrder: number;
   archived: boolean;
 }
@@ -68,9 +69,8 @@ function createFake() {
             exerciseTypeId: e.exerciseTypeId,
             name: t?.name ?? "?",
             category: t?.category ?? "",
-            unit: t?.unit ?? "",
             archived: t?.archived ?? false,
-            amount: e.amount,
+            measurements: e.measurements,
             createdAt: e.createdAt,
           };
         }),
@@ -86,14 +86,7 @@ function createFake() {
       net: d.net,
       weightLbs: d.weightLbs,
       exerciseCount: d.exercises.length,
-      exerciseTotals: [...new Set(d.exercises.map((e) => e.exerciseTypeId))]
-        .sort((a, b) => a - b)
-        .map((exerciseTypeId) => ({
-          exerciseTypeId,
-          amount: d.exercises
-            .filter((e) => e.exerciseTypeId === exerciseTypeId)
-            .reduce((sum, e) => sum + e.amount, 0),
-        })),
+      exerciseTotals: exerciseTotals(d),
       hasNote: Boolean(d.note),
     };
   }
@@ -102,15 +95,17 @@ function createFake() {
     return [...state.types]
       .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
       .filter((t) => includeArchived || !t.archived)
-      .map((t) => ({
-        ...t,
-        lastUsedOn:
-          state.entries
-            .filter((e) => e.exerciseTypeId === t.id)
-            .map((e) => e.date)
-            .sort()
-            .at(-1) ?? null,
-      }));
+      .map((t) => {
+        // Newest first, as the API orders them.
+        const used = state.entries
+          .filter((e) => e.exerciseTypeId === t.id)
+          .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+        return {
+          ...t,
+          lastUsedOn: used[0]?.date ?? null,
+          units: [...new Set(used.flatMap((e) => e.measurements.map((m) => m.unit).reverse()))],
+        };
+      });
   }
 
   const unauthorized = () =>
@@ -230,14 +225,14 @@ function createFake() {
       const date = String(params.date);
       const body = (await record(request, `/api/days/${date}/exercises`)) as {
         exerciseTypeId: number;
-        amount: number;
+        measurements?: Measurement[];
       };
       if (!state.types.some((t) => t.id === body.exerciseTypeId)) return notFound();
       state.entries.push({
         id: state.nextId++,
         date,
         exerciseTypeId: body.exerciseTypeId,
-        amount: body.amount,
+        measurements: body.measurements ?? [],
         createdAt: new Date().toISOString(),
       });
       return HttpResponse.json(dayDetail(date), { status: 201 });
@@ -307,16 +302,12 @@ function createFake() {
       const body = (await record(request, "/api/exercise-types")) as {
         name: string;
         category: string;
-        unit: string;
       };
       const name = body.name.trim();
       const category = body.category.trim();
-      const unit = body.unit.trim();
-      const same = (t: TypeRow) =>
-        t.name.toLowerCase() === name.toLowerCase() && t.unit.toLowerCase() === unit.toLowerCase();
-      if (state.types.some(same)) {
+      if (state.types.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
         return HttpResponse.json(
-          { error: { code: "conflict", message: `"${name} (${unit})" already exists` } },
+          { error: { code: "conflict", message: `"${name}" already exists` } },
           { status: 409 },
         );
       }
@@ -324,12 +315,11 @@ function createFake() {
         id: state.nextId++,
         name,
         category,
-        unit,
         sortOrder: state.types.length,
         archived: false,
       };
       state.types.push(row);
-      return HttpResponse.json({ ...row, lastUsedOn: null }, { status: 201 });
+      return HttpResponse.json({ ...row, lastUsedOn: null, units: [] }, { status: 201 });
     }),
     http.put("*/api/exercise-types/order", async ({ request }) => {
       if (!state.user) return unauthorized();
@@ -364,24 +354,23 @@ function createFake() {
     setDay(date: string, values: Partial<DayRow>) {
       state.days.set(date, { ...(state.days.get(date) ?? emptyDay()), ...values });
     },
-    addType(name: string, unit = "reps", archived = false, category = "cardio") {
+    addType(name: string, { archived = false, category = "cardio" } = {}) {
       const row = {
         id: state.nextId++,
         name,
         category,
-        unit,
         sortOrder: state.types.length,
         archived,
       };
       state.types.push(row);
       return row;
     },
-    addEntry(date: string, exerciseTypeId: number, amount = 1) {
+    addEntry(date: string, exerciseTypeId: number, measurements: Measurement[] = []) {
       const row = {
         id: state.nextId++,
         date,
         exerciseTypeId,
-        amount,
+        measurements,
         createdAt: "2026-10-02T12:00:00Z",
       };
       state.entries.push(row);

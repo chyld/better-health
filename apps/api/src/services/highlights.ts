@@ -1,9 +1,10 @@
 import {
   HIGHLIGHT_RULES_MAX,
   type HighlightRule,
-  type HighlightRuleCreate,
+  type highlightRuleCreateSchema,
 } from "@better-health/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
+import type { z } from "zod";
 import type { Db } from "../db/client";
 import { highlightRules } from "../db/schema";
 import { ConflictError, NotFoundError } from "../lib/errors";
@@ -16,6 +17,7 @@ export function listHighlightRules(db: Db, userId: number): HighlightRule[] {
       id: highlightRules.id,
       metric: highlightRules.metric,
       exerciseTypeId: highlightRules.exerciseTypeId,
+      unit: highlightRules.unit,
       operator: highlightRules.operator,
       target: highlightRules.target,
       color: highlightRules.color,
@@ -31,7 +33,7 @@ export function listHighlightRules(db: Db, userId: number): HighlightRule[] {
 export function createHighlightRule(
   db: Db,
   userId: number,
-  rule: HighlightRuleCreate,
+  rule: z.output<typeof highlightRuleCreateSchema>,
 ): HighlightRule {
   // Another user's label is reported as missing.
   if (rule.exerciseTypeId !== null) requireExerciseType(db, userId, rule.exerciseTypeId);

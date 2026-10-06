@@ -1,7 +1,6 @@
 import { caloriesSchema, type DayPatch, formatNumber, weightSchema } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Flame, Scale, Sparkles, Utensils } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { longDate } from "@/features/calendar/describe";
 import { ApiError } from "@/lib/api";
@@ -16,19 +15,15 @@ import { dayQuery, useUpdateDay } from "./queries";
 export function DayPanel({
   date,
   heading = true,
-  addExerciseOpen,
-  onAddExerciseOpenChange,
+  focusExercise,
 }: {
   date: string;
   heading?: boolean;
-  addExerciseOpen?: boolean;
-  onAddExerciseOpenChange?: (open: boolean) => void;
+  /** Each new value focuses the exercise stickers, once they have loaded. */
+  focusExercise?: number;
 }) {
   const { data: day, isError, refetch } = useQuery(dayQuery(date));
   const update = useUpdateDay(date);
-  const [localAddOpen, setLocalAddOpen] = useState(false);
-  const addOpen = addExerciseOpen ?? localAddOpen;
-  const setAddOpen = onAddExerciseOpenChange ?? setLocalAddOpen;
   const save = (patch: DayPatch) => update.mutate(patch);
 
   return (
@@ -109,7 +104,7 @@ export function DayPanel({
             />
           </div>
 
-          <ExerciseSection day={day} addOpen={addOpen} onAddOpenChange={setAddOpen} />
+          <ExerciseSection day={day} focusRequest={focusExercise} />
 
           <NoteField value={day.note} onSave={(note) => save({ note })} />
         </>

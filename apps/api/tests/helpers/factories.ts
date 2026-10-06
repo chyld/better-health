@@ -1,5 +1,11 @@
 import type { Db } from "../../src/db/client";
-import { dailyLogs, exerciseEntries, exerciseTypes, users } from "../../src/db/schema";
+import {
+  dailyLogs,
+  exerciseEntries,
+  exerciseMeasurements,
+  exerciseTypes,
+  users,
+} from "../../src/db/schema";
 
 let seq = 0;
 const next = () => ++seq;
@@ -38,7 +44,7 @@ export function makeExerciseType(
   const n = next();
   return db
     .insert(exerciseTypes)
-    .values({ userId, name: `exercise${n}`, unit: "reps", sortOrder: n, ...overrides })
+    .values({ userId, name: `exercise${n}`, sortOrder: n, ...overrides })
     .returning()
     .get();
 }
@@ -54,4 +60,8 @@ export function makeExercise(
     .values({ userId, exerciseTypeId, date: "2026-10-02", createdAt: NOW, ...overrides })
     .returning()
     .get();
+}
+
+export function makeMeasurement(db: Db, entryId: number, unit: string, amount: number) {
+  return db.insert(exerciseMeasurements).values({ entryId, unit, amount }).returning().get();
 }

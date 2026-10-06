@@ -28,10 +28,15 @@ describe("log page", () => {
   });
 
   test("lists every day with activity, newest first, today on top", async () => {
-    const walking = fake.addType("Walking", "miles", false, "cardio");
+    const walking = fake.addType("Walking", { category: "cardio" });
+    const yoga = fake.addType("Yoga", { category: "stretch" });
     fake.setDay("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182.4 });
     fake.setDay("2026-09-15", { note: "line one\nline two" });
-    fake.addEntry("2026-10-01", walking.id, 3.5);
+    fake.addEntry("2026-10-01", walking.id, [
+      { unit: "miles", amount: 3.5 },
+      { unit: "minutes", amount: 50 },
+    ]);
+    fake.addEntry("2026-10-01", yoga.id);
     renderApp("/log");
 
     const list = await screen.findByRole("list", { name: "Log, newest first" });
@@ -54,7 +59,11 @@ describe("log page", () => {
     }
 
     const exercises = within(yesterday as HTMLElement).getByRole("list", { name: "Exercises" });
-    expect(within(exercises).getByRole("listitem").textContent).toBe("Walkingcardio – 3.5 miles");
+    expect(
+      within(exercises)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual(["Walkingcardio – 3.5 miles, 50 minutes", "Yogastretch"]);
 
     const note = within(older as HTMLElement).getByText(/line one/);
     expect(note.textContent).toBe("line one\nline two");

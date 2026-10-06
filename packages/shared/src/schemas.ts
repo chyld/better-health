@@ -24,6 +24,7 @@ export const EXERCISE_NAME_MAX = 50;
 export const EXERCISE_UNIT_MAX = 20;
 export const EXERCISE_CATEGORY_MAX = 30;
 export const AMOUNT_MAX = 100_000;
+export const MEASUREMENTS_MAX = 5;
 
 export const caloriesSchema = z
   .number()
@@ -59,14 +60,38 @@ export const amountSchema = z
     "Amount allows two decimal places",
   );
 
+/** "miles", "minutes"; stored lowercase so "Miles" and "miles" add up together. */
+export const exerciseUnitSchema = z
+  .string()
+  .trim()
+  .min(1, "Unit is required")
+  .max(EXERCISE_UNIT_MAX, `Unit must be at most ${EXERCISE_UNIT_MAX} characters`)
+  .transform((s) => s.toLowerCase());
+
+export const measurementSchema = z.strictObject({ unit: exerciseUnitSchema, amount: amountSchema });
+
+/** An entry's measurements, at most one per unit. */
+export const measurementsSchema = z
+  .array(measurementSchema)
+  .max(MEASUREMENTS_MAX, `At most ${MEASUREMENTS_MAX} measurements`)
+  .refine(
+    (list) => new Set(list.map((m) => m.unit)).size === list.length,
+    "Each unit can be measured once",
+  );
+
+/** Logging an exercise needs only its label; measurements can be added later. */
 export const exerciseEntryCreateSchema = z.strictObject({
   exerciseTypeId: idSchema,
-  amount: amountSchema,
+  measurements: measurementsSchema.default([]),
 });
-export type ExerciseEntryCreate = z.infer<typeof exerciseEntryCreateSchema>;
+export type ExerciseEntryCreate = z.input<typeof exerciseEntryCreateSchema>;
 
+/** `measurements` replaces the entry's whole list. */
 export const exerciseEntryPatchSchema = z
-  .strictObject({ exerciseTypeId: idSchema.optional(), amount: amountSchema.optional() })
+  .strictObject({
+    exerciseTypeId: idSchema.optional(),
+    measurements: measurementsSchema.optional(),
+  })
   .refine((v) => Object.keys(v).length > 0, "Nothing to update");
 export type ExerciseEntryPatch = z.infer<typeof exerciseEntryPatchSchema>;
 
@@ -75,12 +100,6 @@ export const exerciseNameSchema = z
   .trim()
   .min(1, "Name is required")
   .max(EXERCISE_NAME_MAX, `Name must be at most ${EXERCISE_NAME_MAX} characters`);
-
-export const exerciseUnitSchema = z
-  .string()
-  .trim()
-  .min(1, "Unit is required")
-  .max(EXERCISE_UNIT_MAX, `Unit must be at most ${EXERCISE_UNIT_MAX} characters`);
 
 /** A free-text grouping such as "cardio" or "strength". */
 export const exerciseCategorySchema = z
@@ -92,14 +111,12 @@ export const exerciseCategorySchema = z
 export const exerciseTypeCreateSchema = z.strictObject({
   name: exerciseNameSchema,
   category: exerciseCategorySchema,
-  unit: exerciseUnitSchema,
 });
 
 export const exerciseTypePatchSchema = z
   .strictObject({
     name: exerciseNameSchema.optional(),
     category: exerciseCategorySchema.optional(),
-    unit: exerciseUnitSchema.optional(),
     archived: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, "Nothing to update");

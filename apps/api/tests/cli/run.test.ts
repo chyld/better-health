@@ -4,7 +4,7 @@ import type { Db } from "../../src/db/client";
 import { exerciseEntries, exerciseTypes, sessions } from "../../src/db/schema";
 import { createUser, listUsers, verifyCredentials } from "../../src/services/users";
 import { createTestDb } from "../helpers/db";
-import { makeDay, makeExercise, makeExerciseType } from "../helpers/factories";
+import { makeDay, makeExercise, makeExerciseType, makeMeasurement } from "../helpers/factories";
 import { fakeIO } from "./fake-io";
 
 let db: Db;
@@ -214,19 +214,17 @@ describe("delete", () => {
 describe("label-list", () => {
   test("lists a user's labels with ids and how many exercises use them", async () => {
     const user = await createUser(db, { username: "alice", password: "password123" });
-    const walk = makeExerciseType(db, user.id, {
-      name: "Walking",
-      category: "cardio",
-      unit: "miles",
-    });
-    makeExerciseType(db, user.id, { name: "Steps", unit: "steps", archivedAt: "x" });
-    makeExercise(db, user.id, walk.id);
-    makeExercise(db, user.id, walk.id);
+    const walk = makeExerciseType(db, user.id, { name: "Walking", category: "cardio" });
+    makeExerciseType(db, user.id, { name: "Steps", archivedAt: "x" });
+    makeMeasurement(db, makeExercise(db, user.id, walk.id, { date: "2026-10-01" }).id, "km", 5);
+    const later = makeExercise(db, user.id, walk.id, { date: "2026-10-02" });
+    makeMeasurement(db, later.id, "miles", 3);
+    makeMeasurement(db, later.id, "minutes", 40);
     const { io, out } = fakeIO();
     expect(await runCli(["label-list", "alice"], db, io)).toBe(0);
     expect(out).toEqual([
-      `${walk.id}\tWalking\tcardio\tmiles\t2 logged exercises`,
-      expect.stringMatching(/^\d+\tSteps\t-\tsteps\t0 logged exercises\tarchived$/),
+      `${walk.id}\tWalking\tcardio\tminutes,miles,km\t2 logged exercises`,
+      expect.stringMatching(/^\d+\tSteps\t-\t-\t0 logged exercises\tarchived$/),
     ]);
   });
 
@@ -243,12 +241,8 @@ describe("label-list", () => {
 describe("label-delete", () => {
   async function setup() {
     const user = await createUser(db, { username: "alice", password: "password123" });
-    const walk = makeExerciseType(db, user.id, {
-      name: "Walking",
-      category: "cardio",
-      unit: "miles",
-    });
-    const yoga = makeExerciseType(db, user.id, { name: "Yoga", unit: "minutes" });
+    const walk = makeExerciseType(db, user.id, { name: "Walking", category: "cardio" });
+    const yoga = makeExerciseType(db, user.id, { name: "Yoga" });
     makeExercise(db, user.id, walk.id);
     makeExercise(db, user.id, walk.id);
     makeExercise(db, user.id, yoga.id);
@@ -266,8 +260,8 @@ describe("label-delete", () => {
     const { walk } = await setup();
     const { io, out, asked } = fakeIO({ prompt: ["Walking"] });
     expect(await runCli(["label-delete", "alice", String(walk.id)], db, io)).toBe(0);
-    expect(asked[0]).toContain('permanently deletes "Walking (miles)" and its 2 logged exercises');
-    expect(out).toEqual(['Deleted "Walking (miles)" and its 2 logged exercises.']);
+    expect(asked[0]).toContain('permanently deletes "Walking" and its 2 logged exercises');
+    expect(out).toEqual(['Deleted "Walking" and its 2 logged exercises.']);
     expect(remainingLabels()).toEqual(["Yoga"]);
     expect(remainingEntries()).toBe(1);
   });
@@ -286,15 +280,15 @@ describe("label-delete", () => {
     const { io, out, asked } = fakeIO();
     expect(await runCli(["label-delete", "alice", String(yoga.id), "--yes"], db, io)).toBe(0);
     expect(asked).toEqual([]);
-    expect(out).toEqual(['Deleted "Yoga (minutes)" and its 1 logged exercise.']);
+    expect(out).toEqual(['Deleted "Yoga" and its 1 logged exercise.']);
   });
 
   test("an unused label says so", async () => {
     const user = await createUser(db, { username: "alice", password: "password123" });
-    const steps = makeExerciseType(db, user.id, { name: "Steps", unit: "steps" });
+    const steps = makeExerciseType(db, user.id, { name: "Steps" });
     const { io, out } = fakeIO();
     await runCli(["label-delete", "alice", String(steps.id), "--yes"], db, io);
-    expect(out).toEqual(['Deleted "Steps (steps)" (no exercises are logged with it).']);
+    expect(out).toEqual(['Deleted "Steps" (no exercises are logged with it).']);
   });
 
   test("never touches another user's label", async () => {

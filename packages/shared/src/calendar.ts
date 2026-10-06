@@ -1,4 +1,5 @@
 import { daysInMonth, formatDate, parseMonth } from "./dates";
+import type { ExerciseTotal } from "./types";
 
 export const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
@@ -46,13 +47,24 @@ export function formatAmount(n: number): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
-/** "Walking (miles)", or just the name for a label without a unit. */
-export function labelText(label: { name: string; unit: string }): string {
-  return label.unit ? `${label.name} (${label.unit})` : label.name;
+/** "3 miles". */
+export function measurementText(m: { unit: string; amount: number }): string {
+  return `${formatAmount(m.amount)} ${m.unit}`;
 }
 
-/** "Walking – 3 miles". */
-export function entryText(entry: { name: string; unit: string; amount: number }): string {
-  const amount = formatAmount(entry.amount);
-  return `${entry.name} – ${entry.unit ? `${amount} ${entry.unit}` : amount}`;
+/** "Walking – 3 miles, 45 minutes", or just "Walking" with nothing measured. */
+export function entryText(entry: {
+  name: string;
+  measurements: readonly { unit: string; amount: number }[];
+}): string {
+  return entry.measurements.length
+    ? `${entry.name} – ${entry.measurements.map(measurementText).join(", ")}`
+    : entry.name;
+}
+
+/** Day totals order: by label, the count (unit null) first, then units alphabetically. */
+export function compareExerciseTotals(a: ExerciseTotal, b: ExerciseTotal): number {
+  if (a.exerciseTypeId !== b.exerciseTypeId) return a.exerciseTypeId - b.exerciseTypeId;
+  if (a.unit === null || b.unit === null) return a.unit === null ? -1 : 1;
+  return a.unit.localeCompare(b.unit);
 }

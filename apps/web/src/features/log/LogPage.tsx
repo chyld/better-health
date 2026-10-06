@@ -1,4 +1,4 @@
-import { type DayDetail, formatAmount, formatNumber, formatWeight } from "@better-health/shared";
+import { type DayDetail, formatNumber, formatWeight, measurementText } from "@better-health/shared";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeft, ScrollText } from "lucide-react";
@@ -180,13 +180,14 @@ function LogDay({ day, isToday }: { day: DayDetail; isToday: boolean }) {
                   </span>
                 )}
                 {entry.archived && <span className="text-muted-foreground"> (archived)</span>}
-                <span className="text-muted-foreground">
-                  {" – "}
-                  <span className="font-bold text-foreground tabular-nums">
-                    {formatAmount(entry.amount)}
+                {entry.measurements.length > 0 && (
+                  <span className="text-muted-foreground">
+                    {" – "}
+                    <span className="font-semibold text-foreground tabular-nums">
+                      {entry.measurements.map(measurementText).join(", ")}
+                    </span>
                   </span>
-                  {entry.unit && ` ${entry.unit}`}
-                </span>
+                )}
               </span>
             </li>
           ))}

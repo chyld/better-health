@@ -60,20 +60,12 @@ export const exerciseTypes = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    // Empty only for labels created before units existed.
-    unit: text("unit").notNull().default(""),
     // Empty only for labels created before categories existed.
     category: text("category").notNull().default(""),
     sortOrder: integer("sort_order").notNull(),
     archivedAt: text("archived_at"),
   },
-  (t) => [
-    uniqueIndex("exercise_types_user_name_unit_unique").on(
-      t.userId,
-      sql`lower(${t.name})`,
-      sql`lower(${t.unit})`,
-    ),
-  ],
+  (t) => [uniqueIndex("exercise_types_user_name_unique").on(t.userId, sql`lower(${t.name})`)],
 );
 
 export const exerciseEntries = sqliteTable(
@@ -87,10 +79,24 @@ export const exerciseEntries = sqliteTable(
     exerciseTypeId: integer("exercise_type_id")
       .notNull()
       .references(() => exerciseTypes.id, { onDelete: "cascade" }),
-    amount: real("amount").notNull().default(0),
     createdAt: text("created_at").notNull(),
   },
   (t) => [index("exercise_entries_user_date_idx").on(t.userId, t.date)],
+);
+
+/** Optional amounts on an entry, such as 3 miles and 30 minutes; at most one per unit. */
+export const exerciseMeasurements = sqliteTable(
+  "exercise_measurements",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    entryId: integer("entry_id")
+      .notNull()
+      .references(() => exerciseEntries.id, { onDelete: "cascade" }),
+    // Lowercase.
+    unit: text("unit").notNull(),
+    amount: real("amount").notNull(),
+  },
+  (t) => [uniqueIndex("exercise_measurements_entry_unit_unique").on(t.entryId, t.unit)],
 );
 
 export const highlightRules = sqliteTable(
@@ -105,6 +111,8 @@ export const highlightRules = sqliteTable(
     exerciseTypeId: integer("exercise_type_id").references(() => exerciseTypes.id, {
       onDelete: "cascade",
     }),
+    // Exercise rules only: the unit to total, or null to count entries.
+    unit: text("unit"),
     operator: text("operator", { enum: HIGHLIGHT_OPERATORS }).notNull(),
     target: real("target").notNull(),
     color: text("color", { enum: HIGHLIGHT_COLORS }).notNull(),

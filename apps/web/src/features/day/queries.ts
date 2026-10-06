@@ -6,7 +6,7 @@ import type {
   ExerciseEntryPatch,
   MonthResponse,
 } from "@better-health/shared";
-import { netCalories } from "@better-health/shared";
+import { compareExerciseTotals, netCalories } from "@better-health/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
 
@@ -29,14 +29,20 @@ function summarize(day: DayDetail): DaySummary {
   };
 }
 
-function exerciseTotals(day: DayDetail): DaySummary["exerciseTotals"] {
-  const totals = new Map<number, number>();
+/** As the API computes it: per label, how many times (unit null) and each unit's sum. */
+export function exerciseTotals(day: DayDetail): DaySummary["exerciseTotals"] {
+  const totals = new Map<string, DaySummary["exerciseTotals"][number]>();
+  const add = (exerciseTypeId: number, unit: string | null, amount: number) => {
+    const key = `${exerciseTypeId}:${unit ?? ""}`;
+    const total = totals.get(key) ?? { exerciseTypeId, unit, amount: 0 };
+    total.amount += amount;
+    totals.set(key, total);
+  };
   for (const e of day.exercises) {
-    totals.set(e.exerciseTypeId, (totals.get(e.exerciseTypeId) ?? 0) + e.amount);
+    add(e.exerciseTypeId, null, 1);
+    for (const m of e.measurements) add(e.exerciseTypeId, m.unit, m.amount);
   }
-  return [...totals]
-    .sort(([a], [b]) => a - b)
-    .map(([exerciseTypeId, amount]) => ({ exerciseTypeId, amount }));
+  return [...totals.values()].sort(compareExerciseTotals);
 }
 
 /** Writes a day into the day cache and into its month's cell. */

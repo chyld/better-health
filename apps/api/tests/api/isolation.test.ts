@@ -16,12 +16,7 @@ beforeEach(async () => {
   bob = (await t.signedInUser("bob")).cookie;
 
   aliceType = (await (
-    await t.json(
-      "/api/exercise-types",
-      "POST",
-      { category: "cardio", name: "Yoga", unit: "minutes" },
-      alice,
-    )
+    await t.json("/api/exercise-types", "POST", { category: "cardio", name: "Yoga" }, alice)
   ).json()) as ExerciseType;
   await t.json(
     `/api/days/${DATE}`,
@@ -33,7 +28,7 @@ beforeEach(async () => {
     await t.json(
       `/api/days/${DATE}/exercises`,
       "POST",
-      { exerciseTypeId: aliceType.id, amount: 30 },
+      { exerciseTypeId: aliceType.id, measurements: [{ unit: "minutes", amount: 30 }] },
       alice,
     )
   ).json()) as DayDetail;
@@ -73,7 +68,7 @@ describe("writes to Alice's records are 404 and change nothing", () => {
     const res = await t.json(
       `/api/days/${DATE}/exercises`,
       "POST",
-      { exerciseTypeId: aliceType.id, amount: 1 },
+      { exerciseTypeId: aliceType.id },
       bob,
     );
     expect(res.status).toBe(404);
@@ -83,34 +78,26 @@ describe("writes to Alice's records are 404 and change nothing", () => {
     const res = await t.json(
       `/api/days/${DATE}/exercises/${aliceEntryId}`,
       "PATCH",
-      { amount: 999 },
+      { measurements: [{ unit: "minutes", amount: 999 }] },
       bob,
     );
     expect(res.status).toBe(404);
-    expect((await aliceDay()).exercises[0]?.amount).toBe(30);
+    expect((await aliceDay()).exercises[0]?.measurements).toEqual([
+      { unit: "minutes", amount: 30 },
+    ]);
   });
 
   test("moving his own entry onto Alice's label", async () => {
     const own = (await (
-      await t.json(
-        "/api/exercise-types",
-        "POST",
-        { category: "cardio", name: "Run", unit: "miles" },
-        bob,
-      )
+      await t.json("/api/exercise-types", "POST", { category: "cardio", name: "Run" }, bob)
     ).json()) as ExerciseType;
     const day = (await (
-      await t.json(
-        `/api/days/${DATE}/exercises`,
-        "POST",
-        { exerciseTypeId: own.id, amount: 1 },
-        bob,
-      )
+      await t.json(`/api/days/${DATE}/exercises`, "POST", { exerciseTypeId: own.id }, bob)
     ).json()) as DayDetail;
     const res = await t.json(
       `/api/days/${DATE}/exercises/${day.exercises[0]?.id}`,
       "PATCH",
-      { exerciseTypeId: aliceType.id, amount: 1 },
+      { exerciseTypeId: aliceType.id },
       bob,
     );
     expect(res.status).toBe(404);
@@ -150,7 +137,7 @@ describe("writes to Alice's records are 404 and change nothing", () => {
     const res = await t.json(
       "/api/exercise-types",
       "POST",
-      { category: "cardio", name: "Yoga", unit: "minutes" },
+      { category: "cardio", name: "Yoga" },
       bob,
     );
     expect(res.status).toBe(201);

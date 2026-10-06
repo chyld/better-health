@@ -7,6 +7,7 @@ import { createTestApp } from "../helpers/app";
 const weightUnder200 = {
   metric: "weight",
   exerciseTypeId: null,
+  unit: null,
   operator: "<",
   target: 200,
   color: "green",
@@ -23,12 +24,7 @@ async function setup(username = "alice") {
     (await (await send("GET", "/api/highlights", undefined, as)).json()) as HighlightRule[];
   const label = async (as = cookie) =>
     (await (
-      await send(
-        "POST",
-        "/api/exercise-types",
-        { name: "Walking", category: "cardio", unit: "miles" },
-        as,
-      )
+      await send("POST", "/api/exercise-types", { name: "Walking", category: "cardio" }, as)
     ).json()) as ExerciseType;
   return { ...t, cookie, send, create, list, label };
 }
@@ -48,15 +44,27 @@ describe("highlight rules", () => {
     await s.create({
       metric: "exercise",
       exerciseTypeId: walking.id,
+      unit: "Miles",
       operator: ">=",
       target: 2.5,
       color: "blue",
     });
+    // Without a unit, an exercise rule counts how many times it was logged.
+    await s.create({
+      metric: "exercise",
+      exerciseTypeId: walking.id,
+      operator: ">=",
+      target: 1,
+      color: "teal",
+    });
     await s.create({ ...weightUnder200, metric: "net", operator: "<=", target: -500 });
-    expect((await s.list()).map((r) => [r.metric, r.operator, r.target, r.sortOrder])).toEqual([
-      ["weight", "<", 200, 0],
-      ["exercise", ">=", 2.5, 1],
-      ["net", "<=", -500, 2],
+    expect(
+      (await s.list()).map((r) => [r.metric, r.unit, r.operator, r.target, r.sortOrder]),
+    ).toEqual([
+      ["weight", null, "<", 200, 0],
+      ["exercise", "miles", ">=", 2.5, 1],
+      ["exercise", null, ">=", 1, 2],
+      ["net", null, "<=", -500, 3],
     ]);
   });
 
@@ -67,6 +75,7 @@ describe("highlight rules", () => {
       { ...weightUnder200, color: "#ff0000" },
       { ...weightUnder200, metric: "exercise" },
       { ...weightUnder200, exerciseTypeId: 1 },
+      { ...weightUnder200, unit: "lbs" },
       { ...weightUnder200, target: "200" },
       { ...weightUnder200, extra: true },
     ]) {

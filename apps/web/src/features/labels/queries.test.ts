@@ -5,10 +5,10 @@ const t = (id: number, sortOrder: number, lastUsedOn: string | null, category = 
   id,
   name: `t${id}`,
   category,
-  unit: "reps",
   sortOrder,
   archived: false,
   lastUsedOn,
+  units: [],
 });
 
 describe("byRecentUse", () => {

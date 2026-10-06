@@ -15,8 +15,10 @@ const day: DaySummary = {
   weightLbs: 182.4,
   exerciseCount: 3,
   exerciseTotals: [
-    { exerciseTypeId: 7, amount: 3.5 },
-    { exerciseTypeId: 9, amount: 0.3 },
+    { exerciseTypeId: 7, unit: null, amount: 2 },
+    { exerciseTypeId: 7, unit: "miles", amount: 3.5 },
+    { exerciseTypeId: 9, unit: null, amount: 1 },
+    { exerciseTypeId: 9, unit: "km", amount: 0.3 },
   ],
   hasNote: false,
 };
@@ -37,6 +39,7 @@ function rule(r: Partial<HighlightRule>): HighlightRule {
     id: nextId++,
     metric: "weight",
     exerciseTypeId: null,
+    unit: null,
     operator: "<",
     target: 200,
     color: "green",
@@ -70,22 +73,36 @@ describe("matchHighlight", () => {
     expect(matchHighlight(day, [rule({ metric: "net", operator: ">", target: 0 })])).toBeFalsy();
   });
 
-  test("exercise rules compare the day's total for that label", () => {
+  test("exercise rules compare the day's total of that unit for that label", () => {
     const walking = (operator: HighlightOperator, target: number) =>
-      rule({ metric: "exercise", exerciseTypeId: 7, operator, target });
+      rule({ metric: "exercise", exerciseTypeId: 7, unit: "miles", operator, target });
     expect(matchHighlight(day, [walking(">=", 3.5)])).toBeTruthy();
     expect(matchHighlight(day, [walking(">", 3.5)])).toBeFalsy();
     // 0.1 + 0.2 summed in floating point still equals 0.3.
     expect(
-      matchHighlight({ ...day, exerciseTotals: [{ exerciseTypeId: 9, amount: 0.1 + 0.2 }] }, [
-        rule({ metric: "exercise", exerciseTypeId: 9, operator: "=", target: 0.3 }),
-      ]),
+      matchHighlight(
+        { ...day, exerciseTotals: [{ exerciseTypeId: 9, unit: "km", amount: 0.1 + 0.2 }] },
+        [rule({ metric: "exercise", exerciseTypeId: 9, unit: "km", operator: "=", target: 0.3 })],
+      ),
     ).toBeTruthy();
     expect(
       matchHighlight(day, [
         rule({ metric: "exercise", exerciseTypeId: 8, operator: ">=", target: 0 }),
       ]),
     ).toBeUndefined();
+    // A unit never measured that day does not match.
+    expect(
+      matchHighlight(day, [
+        rule({ metric: "exercise", exerciseTypeId: 7, unit: "km", operator: ">=", target: 0 }),
+      ]),
+    ).toBeUndefined();
+  });
+
+  test("an exercise rule without a unit counts how many times it was logged", () => {
+    const times = (target: number) =>
+      rule({ metric: "exercise", exerciseTypeId: 7, unit: null, operator: ">=", target });
+    expect(matchHighlight(day, [times(2)])).toBeTruthy();
+    expect(matchHighlight(day, [times(3)])).toBeFalsy();
   });
 
   test("a day with nothing logged for the metric never matches", () => {
@@ -123,6 +140,13 @@ describe("highlightRuleCreateSchema", () => {
       highlightRuleCreateSchema.safeParse({ ...base, metric: "exercise", exerciseTypeId: 3 })
         .success,
     ).toBe(true);
+  });
+
+  test("a unit is optional on exercise rules, lowercased, and not allowed on others", () => {
+    const exercise = { ...base, metric: "exercise", exerciseTypeId: 3 };
+    expect(highlightRuleCreateSchema.parse(exercise).unit).toBeNull();
+    expect(highlightRuleCreateSchema.parse({ ...exercise, unit: " Miles " }).unit).toBe("miles");
+    expect(highlightRuleCreateSchema.safeParse({ ...base, unit: "lbs" }).success).toBe(false);
   });
 
   test("an exercise label goes with an exercise rule, and only with one", () => {

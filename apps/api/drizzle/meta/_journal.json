@@ -36,6 +36,13 @@
       "when": 1791061745336,
       "tag": "0004_highlight_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791306271110,
+      "tag": "0005_optional_measurements",
+      "breakpoints": true
     }
   ]
 }

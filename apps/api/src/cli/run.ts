@@ -1,4 +1,3 @@
-import { labelText } from "@better-health/shared";
 import type { Db } from "../db/client";
 import { AppError } from "../lib/errors";
 import { deleteExerciseType, listExerciseTypesWithCounts } from "../services/exercise-types";
@@ -134,7 +133,13 @@ export async function runCli(argv: readonly string[], db: Db, io: CliIO): Promis
         const labels = listExerciseTypesWithCounts(db, user.id);
         if (labels.length === 0) io.out(`"${user.username}" has no exercise labels.`);
         for (const t of labels) {
-          const parts = [t.id, t.name, t.category || "-", t.unit || "-", exercises(t.entryCount)];
+          const parts = [
+            t.id,
+            t.name,
+            t.category || "-",
+            t.units.join(",") || "-",
+            exercises(t.entryCount),
+          ];
           if (t.archived) parts.push("archived");
           io.out(parts.join("\t"));
         }
@@ -155,8 +160,8 @@ export async function runCli(argv: readonly string[], db: Db, io: CliIO): Promis
         }
         const what =
           label.entryCount === 0
-            ? `"${labelText(label)}" (no exercises are logged with it)`
-            : `"${labelText(label)}" and its ${exercises(label.entryCount)}`;
+            ? `"${label.name}" (no exercises are logged with it)`
+            : `"${label.name}" and its ${exercises(label.entryCount)}`;
         if (!parsed.flags.has("--yes")) {
           const answer = await io.prompt(
             `This permanently deletes ${what}. Type the label name (${label.name}) to confirm: `,

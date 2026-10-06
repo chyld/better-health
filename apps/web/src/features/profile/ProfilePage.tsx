@@ -187,7 +187,10 @@ function Highlights() {
 
 const AMOUNT_PATTERN = /^-?\d+(\.\d+)?$/;
 
-/** Metric picker values: the four day metrics, or "exercise:<label id>". */
+/**
+ * Metric picker values: the four day metrics, "exercise:<label id>" to count how many times
+ * it was logged, or "exercise:<label id>:<unit>" to total a unit measured with it.
+ */
 function toRule(
   metric: string,
   operator: HighlightOperator,
@@ -197,10 +200,12 @@ function toRule(
   const text = amount.trim();
   if (!text) return {};
   if (!AMOUNT_PATTERN.test(text)) return { amountError: "Enter a number, like 200 or -500" };
-  const exerciseId = metric.startsWith("exercise:") ? Number(metric.slice(9)) : null;
+  const [kind, labelId, unit] = metric.split(":");
+  const exerciseId = kind === "exercise" ? Number(labelId) : null;
   const parsed = highlightRuleCreateSchema.safeParse({
     metric: exerciseId === null ? metric : "exercise",
     exerciseTypeId: exerciseId,
+    unit: unit ?? null,
     operator,
     target: Number(text),
     color,
@@ -245,15 +250,16 @@ function AddRuleForm() {
                 {name}
               </option>
             ))}
-            {labels.length > 0 && (
-              <optgroup label="Exercises">
-                {labels.map((l) => (
-                  <option key={l.id} value={`exercise:${l.id}`}>
-                    {[l.name, l.category, l.unit].filter(Boolean).join(" · ")}
+            {labels.map((l) => (
+              <optgroup key={l.id} label={[l.name, l.category].filter(Boolean).join(" · ")}>
+                <option value={`exercise:${l.id}`}>{l.name} · times logged</option>
+                {l.units.map((u) => (
+                  <option key={u} value={`exercise:${l.id}:${u}`}>
+                    {l.name} · {u}
                   </option>
                 ))}
               </optgroup>
-            )}
+            ))}
           </Select>
         </Field>
         <Field label="Condition" htmlFor={`${id}-operator`}>

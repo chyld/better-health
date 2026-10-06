@@ -1,4 +1,5 @@
 import {
+  compareExerciseTotals,
   type DayDetail,
   type DayNote,
   type DayPatch,
@@ -6,11 +7,12 @@ import {
   datesInMonth,
   type ExerciseEntry,
   type HistoryDay,
+  type Measurement,
   netCalories,
 } from "@better-health/shared";
-import { and, asc, between, count, desc, eq, isNotNull, or, sum } from "drizzle-orm";
+import { and, asc, between, count, desc, eq, isNotNull, or, type SQL, sum } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { dailyLogs, exerciseEntries, exerciseTypes } from "../db/schema";
+import { dailyLogs, exerciseEntries, exerciseMeasurements, exerciseTypes } from "../db/schema";
 import { type Clock, systemClock } from "../lib/clock";
 
 type LogRow = typeof dailyLogs.$inferSelect;
@@ -28,25 +30,46 @@ export function getMonth(db: Db, userId: number, month: string): DaySummary[] {
       .all()
       .map((row) => [row.date, row]),
   );
+  const inMonth = and(
+    eq(exerciseEntries.userId, userId),
+    between(exerciseEntries.date, first, last),
+  );
   const counts = new Map<string, number>();
   const totals = new Map<string, DaySummary["exerciseTotals"]>();
+  const addTotal = (date: string, total: DaySummary["exerciseTotals"][number]) => {
+    totals.set(date, [...(totals.get(date) ?? []), total]);
+  };
+  // How many times each label was logged: the unit-less total.
   for (const row of db
     .select({
       date: exerciseEntries.date,
       exerciseTypeId: exerciseEntries.exerciseTypeId,
       n: count(),
-      amount: sum(exerciseEntries.amount).mapWith(Number),
     })
     .from(exerciseEntries)
-    .where(and(eq(exerciseEntries.userId, userId), between(exerciseEntries.date, first, last)))
+    .where(inMonth)
     .groupBy(exerciseEntries.date, exerciseEntries.exerciseTypeId)
-    .orderBy(asc(exerciseEntries.exerciseTypeId))
     .all()) {
     counts.set(row.date, (counts.get(row.date) ?? 0) + row.n);
-    const list = totals.get(row.date) ?? [];
-    list.push({ exerciseTypeId: row.exerciseTypeId, amount: row.amount });
-    totals.set(row.date, list);
+    addTotal(row.date, { exerciseTypeId: row.exerciseTypeId, unit: null, amount: row.n });
   }
+  // And the sum of each unit measured with it.
+  for (const row of db
+    .select({
+      date: exerciseEntries.date,
+      exerciseTypeId: exerciseEntries.exerciseTypeId,
+      unit: exerciseMeasurements.unit,
+      amount: sum(exerciseMeasurements.amount).mapWith(Number),
+    })
+    .from(exerciseMeasurements)
+    .innerJoin(exerciseEntries, eq(exerciseEntries.id, exerciseMeasurements.entryId))
+    .where(inMonth)
+    .groupBy(exerciseEntries.date, exerciseEntries.exerciseTypeId, exerciseMeasurements.unit)
+    .all()) {
+    const { date, ...total } = row;
+    addTotal(date, total);
+  }
+  for (const list of totals.values()) list.sort(compareExerciseTotals);
 
   return dates.map((date) => {
     const log = logs.get(date);
@@ -65,27 +88,49 @@ export function getMonth(db: Db, userId: number, month: string): DaySummary[] {
   });
 }
 
-const entryColumns = {
-  date: exerciseEntries.date,
-  id: exerciseEntries.id,
-  exerciseTypeId: exerciseEntries.exerciseTypeId,
-  name: exerciseTypes.name,
-  category: exerciseTypes.category,
-  unit: exerciseTypes.unit,
-  archivedAt: exerciseTypes.archivedAt,
-  amount: exerciseEntries.amount,
-  createdAt: exerciseEntries.createdAt,
-};
-
-function listEntries(db: Db, userId: number, date: string): ExerciseEntry[] {
-  return db
-    .select(entryColumns)
+/** The user's entries matching `where`, oldest first, with their measurements. */
+function selectEntries(db: Db, where: SQL | undefined): (ExerciseEntry & { date: string })[] {
+  const rows = db
+    .select({
+      date: exerciseEntries.date,
+      id: exerciseEntries.id,
+      exerciseTypeId: exerciseEntries.exerciseTypeId,
+      name: exerciseTypes.name,
+      category: exerciseTypes.category,
+      archivedAt: exerciseTypes.archivedAt,
+      createdAt: exerciseEntries.createdAt,
+    })
     .from(exerciseEntries)
     .innerJoin(exerciseTypes, eq(exerciseTypes.id, exerciseEntries.exerciseTypeId))
-    .where(and(eq(exerciseEntries.userId, userId), eq(exerciseEntries.date, date)))
+    .where(where)
     .orderBy(asc(exerciseEntries.createdAt), asc(exerciseEntries.id))
-    .all()
-    .map(({ date: _date, archivedAt, ...e }) => ({ ...e, archived: archivedAt !== null }));
+    .all();
+  const measurements = new Map<number, Measurement[]>();
+  for (const { entryId, ...m } of db
+    .select({
+      entryId: exerciseMeasurements.entryId,
+      unit: exerciseMeasurements.unit,
+      amount: exerciseMeasurements.amount,
+    })
+    .from(exerciseMeasurements)
+    .innerJoin(exerciseEntries, eq(exerciseEntries.id, exerciseMeasurements.entryId))
+    .where(where)
+    .orderBy(asc(exerciseMeasurements.id))
+    .all()) {
+    measurements.set(entryId, [...(measurements.get(entryId) ?? []), m]);
+  }
+  return rows.map(({ archivedAt, ...e }) => ({
+    ...e,
+    archived: archivedAt !== null,
+    measurements: measurements.get(e.id) ?? [],
+  }));
+}
+
+function listEntries(db: Db, userId: number, date: string): ExerciseEntry[] {
+  return selectEntries(
+    db,
+    and(eq(exerciseEntries.userId, userId), eq(exerciseEntries.date, date)),
+  ).map(({ date: _date, ...e }) => e);
 }
 
 function findLog(db: Db, userId: number, date: string): LogRow | undefined {
@@ -194,15 +239,9 @@ export function listLog(db: Db, userId: number): DayDetail[] {
       .map((row) => [row.date, row]),
   );
   const entries = new Map<string, ExerciseEntry[]>();
-  for (const { date, archivedAt, ...e } of db
-    .select(entryColumns)
-    .from(exerciseEntries)
-    .innerJoin(exerciseTypes, eq(exerciseTypes.id, exerciseEntries.exerciseTypeId))
-    .where(eq(exerciseEntries.userId, userId))
-    .orderBy(asc(exerciseEntries.createdAt), asc(exerciseEntries.id))
-    .all()) {
+  for (const { date, ...e } of selectEntries(db, eq(exerciseEntries.userId, userId))) {
     const list = entries.get(date) ?? [];
-    list.push({ ...e, archived: archivedAt !== null });
+    list.push(e);
     entries.set(date, list);
   }
 

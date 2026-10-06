@@ -1,9 +1,22 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import type { Db } from "../../src/db/client";
-import { dailyLogs, exerciseEntries, exerciseTypes, sessions, users } from "../../src/db/schema";
+import {
+  dailyLogs,
+  exerciseEntries,
+  exerciseMeasurements,
+  exerciseTypes,
+  sessions,
+  users,
+} from "../../src/db/schema";
 import { createTestDb } from "../helpers/db";
-import { makeDay, makeExercise, makeExerciseType, makeUser } from "../helpers/factories";
+import {
+  makeDay,
+  makeExercise,
+  makeExerciseType,
+  makeMeasurement,
+  makeUser,
+} from "../helpers/factories";
 
 let db: Db;
 
@@ -47,11 +60,10 @@ describe("daily_logs", () => {
 });
 
 describe("exercise_types", () => {
-  test("name + unit pairs are unique per user regardless of case", () => {
+  test("names are unique per user regardless of case", () => {
     const user = makeUser(db);
-    makeExerciseType(db, user.id, { name: "Running", unit: "miles" });
-    expect(() => makeExerciseType(db, user.id, { name: "running", unit: "MILES" })).toThrow();
-    expect(() => makeExerciseType(db, user.id, { name: "Running", unit: "km" })).not.toThrow();
+    makeExerciseType(db, user.id, { name: "Running" });
+    expect(() => makeExerciseType(db, user.id, { name: "running" })).toThrow();
   });
 
   test("different users can share a name", () => {
@@ -63,10 +75,15 @@ describe("exercise_types", () => {
 });
 
 describe("exercise_entries", () => {
-  test("stores a decimal amount", () => {
+  test("measurements store a decimal amount, one per unit, and go with their entry", () => {
     const user = makeUser(db);
     const type = makeExerciseType(db, user.id);
-    expect(makeExercise(db, user.id, type.id, { amount: 3.25 }).amount).toBe(3.25);
+    const entry = makeExercise(db, user.id, type.id);
+    expect(makeMeasurement(db, entry.id, "miles", 3.25).amount).toBe(3.25);
+    expect(() => makeMeasurement(db, entry.id, "miles", 1)).toThrow();
+    makeMeasurement(db, entry.id, "minutes", 30);
+    db.delete(exerciseEntries).where(eq(exerciseEntries.id, entry.id)).run();
+    expect(db.select().from(exerciseMeasurements).all()).toEqual([]);
   });
 
   test("rejects an exercise type that does not exist", () => {

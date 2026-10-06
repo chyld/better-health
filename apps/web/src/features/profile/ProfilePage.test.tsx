@@ -36,6 +36,7 @@ describe("profile page", () => {
         id: expect.any(Number),
         metric: "weight",
         exerciseTypeId: null,
+        unit: null,
         operator: "<=",
         target: 199.5,
         color: "blue",
@@ -45,17 +46,26 @@ describe("profile page", () => {
     expect(within(form).getByLabelText("Amount")).toHaveValue("");
   });
 
-  test("offers exercise labels as metrics and accepts negative amounts", async () => {
-    const walking = fake.addType("Walking", "miles", false, "cardio");
-    fake.addType("Old", "reps", true);
+  test("offers each label's count and measured units as metrics", async () => {
+    const walking = fake.addType("Walking", { category: "cardio" });
+    fake.addType("Old", { archived: true });
+    fake.addEntry("2026-09-01", walking.id, [
+      { unit: "miles", amount: 3 },
+      { unit: "minutes", amount: 50 },
+    ]);
     const { user } = renderApp("/profile");
     const form = await screen.findByRole("form", { name: "Add highlight" });
     const metric = within(form).getByLabelText("Metric");
-    await within(metric).findByRole("option", { name: "Walking · cardio · miles" });
+    const group = await within(metric).findByRole("group", { name: "Walking · cardio" });
+    expect(
+      within(group)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["Walking · times logged", "Walking · minutes", "Walking · miles"]);
     // Archived labels are not offered.
     expect(within(metric).queryByRole("option", { name: /Old/ })).toBeNull();
 
-    await user.selectOptions(metric, "Walking · cardio · miles");
+    await user.selectOptions(metric, "Walking · miles");
     await user.selectOptions(within(form).getByLabelText("Condition"), "≥");
     await user.type(within(form).getByLabelText("Amount"), "3");
     await user.click(within(form).getByRole("button", { name: "Add highlight" }));
@@ -63,12 +73,19 @@ describe("profile page", () => {
       expect(fake.state.highlights[0]).toMatchObject({
         metric: "exercise",
         exerciseTypeId: walking.id,
+        unit: "miles",
         operator: ">=",
         target: 3,
         color: "green",
       }),
     );
-    expect(await screen.findByText("Walking (miles) ≥ 3 miles")).toBeInTheDocument();
+    expect(await screen.findByText("Walking ≥ 3 miles")).toBeInTheDocument();
+
+    await user.selectOptions(metric, "Walking · times logged");
+    await user.type(within(form).getByLabelText("Amount"), "1");
+    await user.click(within(form).getByRole("button", { name: "Add highlight" }));
+    expect(await screen.findByText("Walking ≥ 1 time")).toBeInTheDocument();
+    expect(fake.state.highlights[1]).toMatchObject({ exerciseTypeId: walking.id, unit: null });
 
     await user.selectOptions(metric, "Net calories");
     await user.type(within(form).getByLabelText("Amount"), "-500");
@@ -92,6 +109,7 @@ describe("profile page", () => {
     fake.addHighlight({
       metric: "weight",
       exerciseTypeId: null,
+      unit: null,
       operator: "<",
       target: 200,
       color: "green",
@@ -99,6 +117,7 @@ describe("profile page", () => {
     fake.addHighlight({
       metric: "in",
       exerciseTypeId: null,
+      unit: null,
       operator: ">",
       target: 2500,
       color: "red",
@@ -131,6 +150,7 @@ describe("calendar highlights", () => {
     fake.addHighlight({
       metric: "in",
       exerciseTypeId: null,
+      unit: null,
       operator: ">",
       target: 2500,
       color: "red",
@@ -138,6 +158,7 @@ describe("calendar highlights", () => {
     fake.addHighlight({
       metric: "weight",
       exerciseTypeId: null,
+      unit: null,
       operator: "<",
       target: 200,
       color: "green",
@@ -157,27 +178,40 @@ describe("calendar highlights", () => {
     expect(cell("2026-10-05")).not.toHaveAttribute("data-highlight");
   });
 
-  test("exercise rules add up the day's entries for that label", async () => {
-    const walking = fake.addType("Walking", "miles");
-    const yoga = fake.addType("Yoga", "minutes");
-    fake.addEntry("2026-10-01", walking.id, 2);
-    fake.addEntry("2026-10-01", walking.id, 1.5);
-    fake.addEntry("2026-10-02", walking.id, 2);
-    fake.addEntry("2026-10-02", yoga.id, 60);
+  test("exercise rules add up a unit, or count entries, for that label", async () => {
+    const walking = fake.addType("Walking");
+    const yoga = fake.addType("Yoga");
+    fake.addEntry("2026-10-01", walking.id, [{ unit: "miles", amount: 2 }]);
+    fake.addEntry("2026-10-01", walking.id, [{ unit: "miles", amount: 1.5 }]);
+    fake.addEntry("2026-10-02", walking.id, [{ unit: "miles", amount: 2 }]);
+    fake.addEntry("2026-10-02", yoga.id, [{ unit: "minutes", amount: 60 }]);
+    fake.addEntry("2026-10-03", walking.id);
     fake.addHighlight({
       metric: "exercise",
       exerciseTypeId: walking.id,
+      unit: "miles",
       operator: ">=",
       target: 3,
       color: "blue",
+    });
+    fake.addHighlight({
+      metric: "exercise",
+      exerciseTypeId: walking.id,
+      unit: null,
+      operator: ">=",
+      target: 1,
+      color: "green",
     });
     renderApp("/");
     await screen.findByRole("grid");
 
     await waitFor(() => expect(cell("2026-10-01")).toHaveAttribute("data-highlight", "blue"));
     await waitFor(() =>
-      expect(cell("2026-10-01")).toHaveAccessibleName(/highlighted: Walking \(miles\) ≥ 3 miles$/),
+      expect(cell("2026-10-01")).toHaveAccessibleName(/highlighted: Walking ≥ 3 miles$/),
     );
-    expect(cell("2026-10-02")).not.toHaveAttribute("data-highlight");
+    // Not 3 miles, but walked: the count rule matches.
+    expect(cell("2026-10-02")).toHaveAttribute("data-highlight", "green");
+    expect(cell("2026-10-03")).toHaveAccessibleName(/highlighted: Walking ≥ 1 time$/);
+    expect(cell("2026-10-04")).not.toHaveAttribute("data-highlight");
   });
 });

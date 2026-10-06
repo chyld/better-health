@@ -41,15 +41,15 @@ export function CalendarPage() {
     navigate({ params: { month: shiftMonth(month, delta) }, search: {} });
   const goToday = () => navigate({ params: { month: today.slice(0, 7) }, search: { day: today } });
 
-  const [addOpen, setAddOpen] = useState(false);
-  // Close the add-exercise form whenever the shown day changes.
-  useEffect(() => setAddOpen(false), [panelDate]);
+  // Bumped by the e shortcut to move focus to the shown day's exercise stickers; a request
+  // belongs to the day it was made on, so it never carries over to another day.
+  const [exerciseFocus, setExerciseFocus] = useState<{ date: string; n: number } | null>(null);
 
   useShortcuts(isDesktop, {
     "[": () => goMonth(-1),
     "]": () => goMonth(1),
     t: goToday,
-    e: () => panelDate && setAddOpen(true),
+    e: () => panelDate && setExerciseFocus((f) => ({ date: panelDate, n: (f?.n ?? 0) + 1 })),
   });
 
   // Horizontal swipes on the grid change month on touch screens.
@@ -138,7 +138,7 @@ export function CalendarPage() {
         {isDesktop && (
           <p className="text-xs text-muted-foreground">
             Shortcuts: arrow keys move between days, <kbd>[</kbd> <kbd>]</kbd> change month,{" "}
-            <kbd>t</kbd> today, <kbd>e</kbd> add exercise.
+            <kbd>t</kbd> today, <kbd>e</kbd> log exercise.
           </p>
         )}
       </main>
@@ -152,8 +152,7 @@ export function CalendarPage() {
             <DayPanel
               key={panelDate}
               date={panelDate}
-              addExerciseOpen={addOpen}
-              onAddExerciseOpenChange={setAddOpen}
+              focusExercise={exerciseFocus?.date === panelDate ? exerciseFocus.n : undefined}
             />
           ) : (
             <p className="p-4 text-sm text-muted-foreground">Select a day.</p>
