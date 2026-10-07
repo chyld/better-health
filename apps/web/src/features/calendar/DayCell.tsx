@@ -42,7 +42,7 @@ export function DayCell({
       aria-current={isToday ? "date" : undefined}
       onClick={() => onSelect(day.date)}
       className={cn(
-        "group flex h-full min-h-20 w-full flex-col items-stretch gap-1 overflow-hidden rounded-xl bg-card p-1 text-left text-[10px] leading-tight tabular-nums shadow-xs ring-1 ring-violet-100 transition-all sm:min-h-24 sm:rounded-2xl sm:p-1.5 sm:text-xs lg:min-h-28",
+        "group flex h-full min-h-16 w-full flex-col items-stretch gap-1 overflow-hidden rounded-xl bg-card p-1 text-left text-[10px] leading-tight tabular-nums shadow-xs ring-1 ring-violet-100 transition-all sm:rounded-2xl sm:p-1.5 sm:text-xs lg:min-h-20",
         "hover:shadow-md hover:ring-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:hover:-translate-y-0.5",
         tone?.ring,
         isSelected && "bg-violet-50 shadow-md ring-2 ring-violet-500 hover:ring-violet-500",
@@ -72,19 +72,26 @@ export function DayCell({
   );
 }
 
-/** Net calories, number of exercises, weight and steps: the same rows on every screen. */
+/**
+ * Net calories, number of exercises, weight and steps. Phones stack them in short form;
+ * tablets stack them in full; desktops put two to a line in short form, net and weight first.
+ */
 function Values({ day }: { day: DaySummary }) {
   const rows: {
     key: string;
     short: string;
+    /** Tablet only: the one width with room for it on a line of its own. */
     long: string;
     compact: string;
     full: string;
     tone: string;
+    /** Position on desktop. */
+    order: string;
   }[] = [];
   if (day.net !== null) {
     rows.push({
       key: "net",
+      order: "lg:order-1",
       // Phone cells are ~47px wide; the sign on the value already says "net".
       short: "N",
       long: "Net",
@@ -97,6 +104,7 @@ function Values({ day }: { day: DaySummary }) {
     const n = String(day.exerciseCount);
     rows.push({
       key: "exercise",
+      order: "lg:order-3",
       short: "Ex",
       long: "Exercise",
       compact: n,
@@ -108,6 +116,7 @@ function Values({ day }: { day: DaySummary }) {
     const w = formatWeight(day.weightLbs);
     rows.push({
       key: "weight",
+      order: "lg:order-2",
       short: "lb",
       long: "Weight",
       compact: w,
@@ -118,6 +127,7 @@ function Values({ day }: { day: DaySummary }) {
   if (day.steps !== null) {
     rows.push({
       key: "steps",
+      order: "lg:order-4",
       short: "St",
       long: "Steps",
       compact: formatCompact(day.steps),
@@ -126,23 +136,24 @@ function Values({ day }: { day: DaySummary }) {
     });
   }
   return (
-    <span className="flex flex-col gap-0.5" aria-hidden="true">
+    <span className="flex flex-col gap-0.5 lg:grid lg:grid-cols-2 lg:gap-x-1" aria-hidden="true">
       {rows.map((r) => (
         <span
           key={r.key}
           data-value={r.key}
           className={cn(
-            "flex justify-between gap-0.5 rounded-md px-0.5 py-px font-semibold whitespace-nowrap sm:gap-1 sm:px-1.5 sm:py-0.5",
+            "flex min-w-0 justify-between gap-0.5 rounded-md px-0.5 py-px font-semibold whitespace-nowrap sm:gap-1 sm:px-1",
             r.tone,
+            r.order,
           )}
         >
           <span className="font-medium">
-            <span className="md:hidden">{r.short}</span>
-            <span className="hidden md:inline">{r.long}</span>
+            <span className="md:hidden lg:inline">{r.short}</span>
+            <span className="hidden md:inline lg:hidden">{r.long}</span>
           </span>
           <span className="shrink-0">
-            <span className="md:hidden">{r.compact}</span>
-            <span className="hidden md:inline">{r.full}</span>
+            <span className="md:hidden lg:inline">{r.compact}</span>
+            <span className="hidden md:inline lg:hidden">{r.full}</span>
           </span>
         </span>
       ))}
