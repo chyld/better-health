@@ -8,7 +8,7 @@ export const CLIENT_VERSION = __APP_VERSION__;
  * The web app's and the server's versions. They differ when the page is an old copy (e.g.
  * from the offline cache) talking to a newer server; a reload fixes that.
  */
-export function VersionFooter() {
+export function Versions() {
   const server = useQuery({
     queryKey: ["server-version"],
     queryFn: async () => (await unwrap(api.health.$get())).version,
@@ -16,11 +16,10 @@ export function VersionFooter() {
   });
   const mismatch = server.isSuccess && server.data !== CLIENT_VERSION;
   return (
-    // Right padding keeps it clear of the floating log-today button on phones and tablets.
-    <footer
+    <section
       aria-label="Versions"
       className={cn(
-        "flex items-center justify-end gap-2 px-4 pt-2 pr-20 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-muted-foreground lg:pr-4",
+        "flex flex-wrap items-center justify-end gap-2 pt-2 text-xs text-muted-foreground",
         mismatch && "text-amber-800",
       )}
     >
@@ -40,6 +39,6 @@ export function VersionFooter() {
           Reload to update
         </button>
       )}
-    </footer>
+    </section>
   );
 }

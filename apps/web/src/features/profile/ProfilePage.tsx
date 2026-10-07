@@ -32,6 +32,7 @@ import {
   OPERATOR_TEXT,
   useHighlightMutations,
 } from "./highlights";
+import { Versions } from "./Versions";
 
 const errorText = (e: unknown) =>
   e instanceof ApiError ? e.message : e ? "Something went wrong" : null;
@@ -71,6 +72,8 @@ export function ProfilePage() {
       </section>
 
       <Highlights />
+
+      <Versions />
     </main>
   );
 }

@@ -23,6 +23,10 @@ test("a highlight rule on the Profile page colors matching days", async ({ page 
 
   await page.getByRole("link", { name: "Profile, alice" }).click();
   await expect(page.getByRole("heading", { name: "Profile", level: 1 })).toBeVisible();
+  // The server and this build agree (e2e runs pin APP_VERSION).
+  await expect(page.getByRole("region", { name: "Versions" })).toHaveText(
+    "client e2e · server e2e",
+  );
   const form = page.getByRole("form", { name: "Add highlight" });
   await form.getByLabel("Metric").selectOption({ label: "Weight" });
   await form.getByLabel("Condition").selectOption({ label: "<" });
