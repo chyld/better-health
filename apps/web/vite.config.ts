@@ -40,6 +40,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // A new version takes over as soon as it installs, and main.tsx then reloads the page.
+        // The plugin only sets these when it injects the registration itself; without them the
+        // new version waits until every tab is closed, and a refresh keeps the old one.
+        skipWaiting: true,
+        clientsClaim: true,
         // The API is never cached: data must always be live.
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [],
