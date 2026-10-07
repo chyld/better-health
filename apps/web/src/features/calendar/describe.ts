@@ -1,4 +1,4 @@
-import type { DaySummary } from "@better-health/shared";
+import { type DaySummary, formatAmount } from "@better-health/shared";
 
 const LONG_DATE = new Intl.DateTimeFormat("en-US", {
   weekday: "long",
@@ -22,6 +22,11 @@ export function describeDay(
   if (day.caloriesOut !== null) parts.push(`out ${day.caloriesOut}`);
   if (day.net !== null) parts.push(`net ${day.net < 0 ? "minus " : ""}${Math.abs(day.net)}`);
   if (day.weightLbs !== null) parts.push(`weight ${day.weightLbs.toFixed(1)} pounds`);
+  if (day.steps !== null) parts.push(`${day.steps} ${day.steps === 1 ? "step" : "steps"}`);
+  if (day.distanceMiles !== null) {
+    const miles = formatAmount(day.distanceMiles);
+    parts.push(`${miles} ${day.distanceMiles === 1 ? "mile" : "miles"}`);
+  }
   if (day.exerciseCount > 0) {
     parts.push(`${day.exerciseCount} exercise${day.exerciseCount === 1 ? "" : "s"}`);
   }

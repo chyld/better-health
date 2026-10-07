@@ -1,4 +1,4 @@
-import { formatNumber, formatWeight, type HistoryDay } from "@better-health/shared";
+import { formatAmount, formatNumber, formatWeight, type HistoryDay } from "@better-health/shared";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown, History } from "lucide-react";
@@ -13,7 +13,7 @@ export const historyQuery = queryOptions({
   queryFn: (): Promise<HistoryDay[]> => unwrap(api.history.$get()),
 });
 
-export const METRIC_IDS = ["in", "out", "net", "weight"] as const;
+export const METRIC_IDS = ["in", "out", "net", "weight", "steps", "distance"] as const;
 export type MetricId = (typeof METRIC_IDS)[number];
 
 interface Metric {
@@ -57,6 +57,20 @@ const METRICS: Record<MetricId, Metric> = {
     unit: "lbs",
     tone: () => ({ text: metricTone.weight.text, bar: "bg-violet-400" }),
   },
+  steps: {
+    label: "Steps",
+    value: (d) => d.steps,
+    format: (n) => formatNumber(n),
+    unit: "steps",
+    tone: () => ({ text: metricTone.steps.text, bar: "bg-teal-400" }),
+  },
+  distance: {
+    label: "Distance",
+    value: (d) => d.distanceMiles,
+    format: formatAmount,
+    unit: "mi",
+    tone: () => ({ text: metricTone.distance.text, bar: "bg-indigo-400" }),
+  },
 };
 
 const DATE = new Intl.DateTimeFormat("en-US", {
@@ -85,7 +99,11 @@ export function HistoryPage() {
   const largest = Math.max(1, ...rows.map((r) => Math.abs(r.value)));
   const average = rows.length ? rows.reduce((sum, r) => sum + r.value, 0) / rows.length : null;
   const formatAverage = (n: number) =>
-    metricId === "weight" ? formatWeight(Math.round(n * 10) / 10) : metric.format(Math.round(n));
+    metricId === "weight"
+      ? formatWeight(Math.round(n * 10) / 10)
+      : metricId === "distance"
+        ? formatAmount(n)
+        : metric.format(Math.round(n));
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-4">

@@ -2,7 +2,16 @@ import { expect, test } from "bun:test";
 import type { HistoryDay } from "@better-health/shared";
 import { createTestApp } from "../helpers/app";
 
-test("lists every day with calories or weight, newest first, with net", async () => {
+const EMPTY = {
+  caloriesIn: null,
+  caloriesOut: null,
+  net: null,
+  weightLbs: null,
+  steps: null,
+  distanceMiles: null,
+};
+
+test("lists every day with calories, weight, steps or distance, newest first, with net", async () => {
   const t = createTestApp();
   const { cookie } = await t.signedInUser("alice");
   const patch = (date: string, body: unknown) => t.json(`/api/days/${date}`, "PATCH", body, cookie);
@@ -10,13 +19,17 @@ test("lists every day with calories or weight, newest first, with net", async ()
   await patch("2026-10-02", { weightLbs: 182.4 });
   await patch("2026-10-01", { note: "only a note" });
   await patch("2025-12-31", { caloriesIn: 2100 });
+  await patch("2025-12-30", { steps: 9000 });
+  await patch("2025-12-29", { distanceMiles: 2.5 });
 
   const res = await t.request("/api/history", { cookie });
   expect(res.status).toBe(200);
   expect((await res.json()) as HistoryDay[]).toEqual([
-    { date: "2026-10-02", caloriesIn: null, caloriesOut: null, net: null, weightLbs: 182.4 },
-    { date: "2026-09-15", caloriesIn: 1800, caloriesOut: 2400, net: -600, weightLbs: null },
-    { date: "2025-12-31", caloriesIn: 2100, caloriesOut: null, net: null, weightLbs: null },
+    { ...EMPTY, date: "2026-10-02", weightLbs: 182.4 },
+    { ...EMPTY, date: "2026-09-15", caloriesIn: 1800, caloriesOut: 2400, net: -600 },
+    { ...EMPTY, date: "2025-12-31", caloriesIn: 2100 },
+    { ...EMPTY, date: "2025-12-30", steps: 9000 },
+    { ...EMPTY, date: "2025-12-29", distanceMiles: 2.5 },
   ]);
 });
 

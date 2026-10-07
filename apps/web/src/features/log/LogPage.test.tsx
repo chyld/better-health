@@ -30,7 +30,13 @@ describe("log page", () => {
   test("lists every day with activity, newest first, today on top", async () => {
     const walking = fake.addType("Walking", { category: "cardio" });
     const yoga = fake.addType("Yoga", { category: "stretch" });
-    fake.setDay("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182.4 });
+    fake.setDay("2026-10-02", {
+      caloriesIn: 1850,
+      caloriesOut: 2600,
+      weightLbs: 182.4,
+      steps: 12345,
+      distanceMiles: 5.25,
+    });
     fake.setDay("2026-09-15", { note: "line one\nline two" });
     fake.addEntry("2026-10-01", walking.id, [
       { unit: "miles", amount: 3.5 },
@@ -53,6 +59,8 @@ describe("log page", () => {
       ["Out", "2,600 cal"],
       ["Net", "−750 cal"],
       ["Weight", "182.4 lbs"],
+      ["Steps", "12,345"],
+      ["Distance", "5.25 mi"],
     ]) {
       const dt = within(today as HTMLElement).getByText(term as string, { selector: "dt" });
       expect(dt.nextElementSibling?.textContent).toBe(value);

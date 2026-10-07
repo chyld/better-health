@@ -46,6 +46,8 @@ export const dailyLogs = sqliteTable(
     caloriesIn: integer("calories_in"),
     caloriesOut: integer("calories_out"),
     weightLbs: real("weight_lbs"),
+    steps: integer("steps"),
+    distanceMiles: real("distance_miles"),
     note: text("note"),
     updatedAt: text("updated_at").notNull(),
   },

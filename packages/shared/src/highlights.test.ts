@@ -13,6 +13,8 @@ const day: DaySummary = {
   caloriesOut: 2600,
   net: -750,
   weightLbs: 182.4,
+  steps: 12_345,
+  distanceMiles: 5.25,
   exerciseCount: 3,
   exerciseTotals: [
     { exerciseTypeId: 7, unit: null, amount: 2 },
@@ -28,6 +30,8 @@ const empty: DaySummary = {
   caloriesOut: null,
   net: null,
   weightLbs: null,
+  steps: null,
+  distanceMiles: null,
   exerciseCount: 0,
   exerciseTotals: [],
   hasNote: false,
@@ -71,6 +75,15 @@ describe("matchHighlight", () => {
     ).toBeTruthy();
     expect(matchHighlight(day, [rule({ metric: "net", operator: "<", target: 0 })])).toBeTruthy();
     expect(matchHighlight(day, [rule({ metric: "net", operator: ">", target: 0 })])).toBeFalsy();
+    expect(
+      matchHighlight(day, [rule({ metric: "steps", operator: ">=", target: 10_000 })]),
+    ).toBeTruthy();
+    expect(
+      matchHighlight(day, [rule({ metric: "distance", operator: "=", target: 5.25 })]),
+    ).toBeTruthy();
+    expect(
+      matchHighlight(day, [rule({ metric: "distance", operator: ">", target: 5.25 })]),
+    ).toBeFalsy();
   });
 
   test("exercise rules compare the day's total of that unit for that label", () => {
@@ -109,6 +122,9 @@ describe("matchHighlight", () => {
     for (const operator of HIGHLIGHT_OPERATORS) {
       expect(matchHighlight(empty, [rule({ operator, target: 0 })])).toBeUndefined();
       expect(matchHighlight(empty, [rule({ metric: "net", operator, target: 0 })])).toBeUndefined();
+      for (const metric of ["steps", "distance"] as const) {
+        expect(matchHighlight(empty, [rule({ metric, operator, target: 0 })])).toBeUndefined();
+      }
     }
   });
 

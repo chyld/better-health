@@ -18,13 +18,21 @@ async function openDesktop(path = "/") {
 
 beforeEach(() => fake.signIn());
 
-describe("calorie and weight fields", () => {
+describe("calorie, weight, steps and distance fields", () => {
   test("show the saved values and net", async () => {
-    fake.setDay("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182 });
+    fake.setDay("2026-10-02", {
+      caloriesIn: 1850,
+      caloriesOut: 2600,
+      weightLbs: 182,
+      steps: 12345,
+      distanceMiles: 5.5,
+    });
     const { panel } = await openDesktop();
     expect(within(panel).getByLabelText("Calories in")).toHaveValue("1850");
     expect(within(panel).getByLabelText("Calories out")).toHaveValue("2600");
     expect(within(panel).getByLabelText("Weight")).toHaveValue("182.0");
+    expect(within(panel).getByLabelText("Steps")).toHaveValue("12345");
+    expect(within(panel).getByLabelText("Distance")).toHaveValue("5.5");
     expect(within(panel).getByRole("status", { name: "Net" })).toHaveTextContent("−750");
   });
 
@@ -81,6 +89,20 @@ describe("calorie and weight fields", () => {
     await waitFor(() => expect(patches()[0]?.body).toEqual({ weightLbs: 182.4 }));
   });
 
+  test("steps and distance save, and show on the calendar cell", async () => {
+    const { user, panel } = await openDesktop();
+    await user.type(within(panel).getByLabelText("Steps"), "12345");
+    await user.type(within(panel).getByLabelText("Distance"), "5.25");
+    await user.tab();
+    await waitFor(() =>
+      expect(patches().map((p) => p.body)).toEqual([{ steps: 12345 }, { distanceMiles: 5.25 }]),
+    );
+    await waitFor(() =>
+      expect(cell("2026-10-02")).toHaveAccessibleName(/12345 steps, 5\.25 miles/),
+    );
+    expect(cell("2026-10-02").querySelector('[data-value="steps"]')).toHaveTextContent("12,345");
+  });
+
   test.each([
     ["Calories in", "abc", "Enter a number"],
     ["Calories in", "-5", "Enter a number"],
@@ -88,6 +110,10 @@ describe("calorie and weight fields", () => {
     ["Calories in", "25000", "Calories must be at most 20000"],
     ["Weight", "182.45", "Weight allows one decimal place"],
     ["Weight", "20", "Weight must be at least 50 lbs"],
+    ["Steps", "1.5", "Steps must be a whole number"],
+    ["Steps", "250000", "Steps must be at most 200000"],
+    ["Distance", "3.125", "Distance allows two decimal places"],
+    ["Distance", "250", "Distance must be at most 200 miles"],
   ])("%s %p is rejected with %p and not saved", async (label, input, message) => {
     const { user, panel } = await openDesktop();
     const field = within(panel).getByLabelText(label);

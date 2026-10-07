@@ -16,6 +16,8 @@ interface DayRow {
   caloriesIn: number | null;
   caloriesOut: number | null;
   weightLbs: number | null;
+  steps: number | null;
+  distanceMiles: number | null;
   note: string | null;
 }
 interface EntryRow {
@@ -53,6 +55,8 @@ function createFake() {
     caloriesIn: null,
     caloriesOut: null,
     weightLbs: null,
+    steps: null,
+    distanceMiles: null,
     note: null,
   });
 
@@ -87,6 +91,8 @@ function createFake() {
       caloriesOut: d.caloriesOut,
       net: d.net,
       weightLbs: d.weightLbs,
+      steps: d.steps,
+      distanceMiles: d.distanceMiles,
       exerciseCount: d.exercises.length,
       exerciseTotals: exerciseTotals(d),
       hasNote: Boolean(d.note),
@@ -175,7 +181,14 @@ function createFake() {
     http.get("*/api/history", () => {
       if (!state.user) return unauthorized();
       const days = [...state.days.entries()]
-        .filter(([, d]) => d.caloriesIn !== null || d.caloriesOut !== null || d.weightLbs !== null)
+        .filter(
+          ([, d]) =>
+            d.caloriesIn !== null ||
+            d.caloriesOut !== null ||
+            d.weightLbs !== null ||
+            d.steps !== null ||
+            d.distanceMiles !== null,
+        )
         .sort(([a], [b]) => b.localeCompare(a))
         .map(([date, d]) => ({
           date,
@@ -183,6 +196,8 @@ function createFake() {
           caloriesOut: d.caloriesOut,
           net: netCalories(d.caloriesIn, d.caloriesOut),
           weightLbs: d.weightLbs,
+          steps: d.steps,
+          distanceMiles: d.distanceMiles,
         }));
       return HttpResponse.json(days);
     }),
@@ -207,6 +222,8 @@ function createFake() {
               d.caloriesIn !== null ||
               d.caloriesOut !== null ||
               d.weightLbs !== null ||
+              d.steps !== null ||
+              d.distanceMiles !== null ||
               Boolean(d.note) ||
               d.exercises.length > 0,
           ),

@@ -23,6 +23,8 @@ function summarize(day: DayDetail): DaySummary {
     caloriesOut: day.caloriesOut,
     net: day.net,
     weightLbs: day.weightLbs,
+    steps: day.steps,
+    distanceMiles: day.distanceMiles,
     exerciseCount: day.exercises.length,
     exerciseTotals: exerciseTotals(day),
     hasNote: Boolean(day.note?.trim()),

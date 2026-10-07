@@ -2,7 +2,15 @@ import { z } from "zod";
 import { exerciseUnitSchema } from "./schemas";
 import type { DaySummary, HighlightRule } from "./types";
 
-export const HIGHLIGHT_METRICS = ["in", "out", "net", "weight", "exercise"] as const;
+export const HIGHLIGHT_METRICS = [
+  "in",
+  "out",
+  "net",
+  "weight",
+  "steps",
+  "distance",
+  "exercise",
+] as const;
 export type HighlightMetric = (typeof HIGHLIGHT_METRICS)[number];
 
 export const HIGHLIGHT_OPERATORS = ["<", "<=", "=", ">=", ">"] as const;
@@ -71,6 +79,10 @@ export function highlightValue(
       return day.net;
     case "weight":
       return day.weightLbs;
+    case "steps":
+      return day.steps;
+    case "distance":
+      return day.distanceMiles;
     case "exercise":
       return (
         day.exerciseTotals.find(

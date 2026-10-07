@@ -46,6 +46,33 @@ describe("profile page", () => {
     expect(within(form).getByLabelText("Amount")).toHaveValue("");
   });
 
+  test("steps and distance can be highlighted", async () => {
+    const { user } = renderApp("/profile");
+    const form = await screen.findByRole("form", { name: "Add highlight" });
+    for (const [metric, amount] of [
+      ["Steps", "10000"],
+      ["Distance", "3.5"],
+    ]) {
+      await user.selectOptions(within(form).getByLabelText("Metric"), metric as string);
+      await user.selectOptions(within(form).getByLabelText("Condition"), "≥");
+      await user.clear(within(form).getByLabelText("Amount"));
+      await user.type(within(form).getByLabelText("Amount"), amount as string);
+      await user.click(within(form).getByRole("button", { name: "Add highlight" }));
+      await waitFor(() => expect(within(form).getByLabelText("Amount")).toHaveValue(""));
+    }
+    const list = await screen.findByRole("list", { name: "Highlights, first match wins" });
+    await waitFor(() =>
+      expect(
+        within(list)
+          .getAllByRole("listitem")
+          .map((li) => li.textContent),
+      ).toEqual([
+        expect.stringContaining("Steps ≥ 10,000 · Green"),
+        expect.stringContaining("Distance ≥ 3.5 mi · Green"),
+      ]),
+    );
+  });
+
   test("offers each label's count and measured units as metrics", async () => {
     const walking = fake.addType("Walking", { category: "cardio" });
     fake.addType("Old", { archived: true });

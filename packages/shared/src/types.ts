@@ -8,6 +8,8 @@ export interface DaySummary {
   caloriesOut: number | null;
   net: number | null;
   weightLbs: number | null;
+  steps: number | null;
+  distanceMiles: number | null;
   exerciseCount: number;
   /**
    * For each label logged on the day: how many times (unit null), and the total of each unit
@@ -54,17 +56,21 @@ export interface DayDetail {
   caloriesOut: number | null;
   net: number | null;
   weightLbs: number | null;
+  steps: number | null;
+  distanceMiles: number | null;
   note: string | null;
   exercises: ExerciseEntry[];
 }
 
-/** A day with at least one of calories in, calories out or weight; for the History page. */
+/** A day with at least one of calories in or out, weight, steps or distance; for History. */
 export interface HistoryDay {
   date: string;
   caloriesIn: number | null;
   caloriesOut: number | null;
   net: number | null;
   weightLbs: number | null;
+  steps: number | null;
+  distanceMiles: number | null;
 }
 
 export interface DayNote {

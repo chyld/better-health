@@ -1,6 +1,14 @@
-import { caloriesSchema, type DayPatch, formatNumber, weightSchema } from "@better-health/shared";
+import {
+  caloriesSchema,
+  type DayPatch,
+  distanceSchema,
+  formatNumber,
+  formatWeight,
+  stepsSchema,
+  weightSchema,
+} from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
-import { Flame, Scale, Sparkles, Utensils } from "lucide-react";
+import { Flame, Footprints, Route, Scale, Sparkles, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { longDate } from "@/features/calendar/describe";
 import { ApiError } from "@/lib/api";
@@ -99,9 +107,30 @@ export function DayPanel({
               value={day.weightLbs}
               schema={weightSchema}
               decimal
+              format={formatWeight}
               suffix="lbs"
               onSave={(weightLbs) => save({ weightLbs })}
             />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <NumberField
+                label="Steps"
+                icon={<Footprints />}
+                tone={metricTone.steps}
+                value={day.steps}
+                schema={stepsSchema}
+                onSave={(steps) => save({ steps })}
+              />
+              <NumberField
+                label="Distance"
+                icon={<Route />}
+                tone={metricTone.distance}
+                value={day.distanceMiles}
+                schema={distanceSchema}
+                decimal
+                suffix="mi"
+                onSave={(distanceMiles) => save({ distanceMiles })}
+              />
+            </div>
           </div>
 
           <ExerciseSection day={day} focusRequest={focusExercise} />

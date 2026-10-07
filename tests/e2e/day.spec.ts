@@ -19,6 +19,23 @@ test("logs calories and weight; the cell shows them and they persist", async ({ 
   await expect(cell(page, "2026-10-01")).toHaveAccessibleName(/net minus 750/);
 });
 
+test("logs steps and distance; the cell shows steps and they persist", async ({ page }) => {
+  await login(page);
+  const day = await openDay(page, "2026-10-01");
+  await fillAndSave(day, "Steps", "12345");
+  await fillAndSave(day, "Distance", "5.25");
+  await closeDay(page);
+
+  const c = cell(page, "2026-10-01");
+  await expect(c).toHaveAccessibleName("Thursday, October 1, 12345 steps, 5.25 miles");
+  await expect(c.locator('[data-value="steps"]')).toBeVisible();
+
+  await page.reload();
+  const again = await openDay(page, "2026-10-01");
+  await expect(again.getByLabel("Steps")).toHaveValue("12345");
+  await expect(again.getByLabel("Distance")).toHaveValue("5.25");
+});
+
 test("a note auto-saves without leaving the field", async ({ page }) => {
   await login(page);
   const day = await openDay(page, "2026-10-02");

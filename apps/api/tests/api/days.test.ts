@@ -23,6 +23,8 @@ describe("GET /api/days/:date", () => {
       caloriesOut: null,
       net: null,
       weightLbs: null,
+      steps: null,
+      distanceMiles: null,
       note: null,
       exercises: [],
     });
@@ -99,6 +101,29 @@ describe("PATCH /api/days/:date", () => {
     expect(d).toMatchObject({ caloriesIn: null, hasNote: false });
   });
 
+  test("saves steps and distance alongside the other values", async () => {
+    const s = await setup();
+    await s.patch("2026-10-02", { weightLbs: 182.4, steps: 12_345, distanceMiles: 5.25 });
+    await s.patch("2026-10-02", { steps: 9000 });
+    expect(await s.day("2026-10-02")).toMatchObject({
+      weightLbs: 182.4,
+      steps: 9000,
+      distanceMiles: 5.25,
+    });
+  });
+
+  test("a day with only steps or distance is kept until they are cleared", async () => {
+    const s = await setup();
+    await s.patch("2026-10-02", { distanceMiles: 2.5 });
+    await s.patch("2026-10-03", { steps: 4000 });
+    expect((await s.day("2026-10-02")).distanceMiles).toBe(2.5);
+    await s.patch("2026-10-02", { distanceMiles: null });
+    await s.patch("2026-10-03", { steps: null });
+    const [, oct2, oct3] = (await s.month("2026-10")).days;
+    expect(oct2).toMatchObject({ steps: null, distanceMiles: null });
+    expect(oct3).toMatchObject({ steps: null, distanceMiles: null });
+  });
+
   test("zero is a real value", async () => {
     const s = await setup();
     await s.patch("2026-10-02", { caloriesIn: 0, caloriesOut: 0 });
@@ -113,6 +138,11 @@ describe("PATCH /api/days/:date", () => {
     { body: { caloriesIn: "1850" } },
     { body: { weightLbs: 182.45 } },
     { body: { weightLbs: 20 } },
+    { body: { steps: -1 } },
+    { body: { steps: 200_001 } },
+    { body: { steps: 10.5 } },
+    { body: { distanceMiles: 3.125 } },
+    { body: { distanceMiles: 201 } },
     { body: { net: 100 } },
     { body: { note: "x".repeat(10_001) } },
   ])("rejects $body", async ({ body }) => {
@@ -142,6 +172,8 @@ describe("GET /api/months/:month", () => {
       caloriesOut: null,
       net: null,
       weightLbs: null,
+      steps: null,
+      distanceMiles: null,
       exerciseCount: 0,
       exerciseTotals: [],
       hasNote: false,
@@ -154,6 +186,8 @@ describe("GET /api/months/:month", () => {
       caloriesIn: 1850,
       caloriesOut: 2600,
       weightLbs: 182.4,
+      steps: 12_345,
+      distanceMiles: 5.25,
       note: "hi",
     });
     const type = (await (
@@ -181,6 +215,8 @@ describe("GET /api/months/:month", () => {
       caloriesOut: 2600,
       net: -750,
       weightLbs: 182.4,
+      steps: 12_345,
+      distanceMiles: 5.25,
       exerciseCount: 3,
       exerciseTotals: [
         { exerciseTypeId: type.id, unit: null, amount: 3 },

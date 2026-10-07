@@ -1,4 +1,10 @@
-import { type DayDetail, formatNumber, formatWeight, measurementText } from "@better-health/shared";
+import {
+  type DayDetail,
+  formatAmount,
+  formatNumber,
+  formatWeight,
+  measurementText,
+} from "@better-health/shared";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeft, ScrollText } from "lucide-react";
@@ -79,6 +85,8 @@ function emptyDay(date: string): DayDetail {
     caloriesOut: null,
     net: null,
     weightLbs: null,
+    steps: null,
+    distanceMiles: null,
     note: null,
     exercises: [],
   };
@@ -106,6 +114,16 @@ function LogDay({ day, isToday }: { day: DayDetail; isToday: boolean }) {
       label: "Weight",
       value: `${formatWeight(day.weightLbs)} lbs`,
       text: metricTone.weight.text,
+    },
+    day.steps !== null && {
+      label: "Steps",
+      value: formatNumber(day.steps),
+      text: metricTone.steps.text,
+    },
+    day.distanceMiles !== null && {
+      label: "Distance",
+      value: `${formatAmount(day.distanceMiles)} mi`,
+      text: metricTone.distance.text,
     },
   ].filter((m) => m !== false);
   const empty = metrics.length === 0 && day.exercises.length === 0 && !day.note;

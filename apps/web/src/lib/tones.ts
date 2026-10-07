@@ -20,6 +20,16 @@ export const metricTone = {
     icon: "bg-violet-500 text-white",
     text: "text-violet-800",
   },
+  steps: {
+    card: "bg-teal-50 ring-teal-200/70",
+    icon: "bg-teal-600 text-white",
+    text: "text-teal-800",
+  },
+  distance: {
+    card: "bg-indigo-50 ring-indigo-200/70",
+    icon: "bg-indigo-500 text-white",
+    text: "text-indigo-800",
+  },
   exercise: {
     card: "bg-sky-50 ring-sky-200/70",
     icon: "bg-sky-500 text-white",

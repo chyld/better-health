@@ -35,6 +35,7 @@ describe("passwordSchema", () => {
 import {
   caloriesSchema,
   dayPatchSchema,
+  distanceSchema,
   exerciseEntryCreateSchema,
   exerciseEntryPatchSchema,
   exerciseTypeCreateSchema,
@@ -42,6 +43,7 @@ import {
   exerciseTypePatchSchema,
   isoDateSchema,
   isoMonthSchema,
+  stepsSchema,
   weightSchema,
 } from "./schemas";
 
@@ -72,10 +74,29 @@ describe("weightSchema", () => {
   });
 });
 
+describe("stepsSchema", () => {
+  test.each([0, 1, 12_345, 200_000])("accepts %p", (n) => {
+    expect(stepsSchema.safeParse(n).success).toBe(true);
+  });
+  test.each([-1, 200_001, 10.5, "9000"])("rejects %p", (n) => {
+    expect(stepsSchema.safeParse(n).success).toBe(false);
+  });
+});
+
+describe("distanceSchema", () => {
+  test.each([0, 0.01, 3, 5.25, 0.1 + 0.2, 200])("accepts %p", (n) => {
+    expect(distanceSchema.safeParse(n).success).toBe(true);
+  });
+  test.each([-0.5, 200.01, 3.125, "3"])("rejects %p", (n) => {
+    expect(distanceSchema.safeParse(n).success).toBe(false);
+  });
+});
+
 describe("dayPatchSchema", () => {
   test("accepts any subset of fields, including null to clear", () => {
     expect(dayPatchSchema.safeParse({ caloriesIn: 1850 }).success).toBe(true);
     expect(dayPatchSchema.safeParse({ weightLbs: null, note: "hi" }).success).toBe(true);
+    expect(dayPatchSchema.safeParse({ steps: 9000, distanceMiles: null }).success).toBe(true);
     expect(
       dayPatchSchema.safeParse({ caloriesIn: 1, caloriesOut: 2, weightLbs: 150, note: "" }).success,
     ).toBe(true);

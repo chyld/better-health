@@ -45,6 +45,8 @@ export const METRIC_NAMES: Record<Exclude<HighlightMetric, "exercise">, string> 
   out: "Calories out",
   net: "Net calories",
   weight: "Weight",
+  steps: "Steps",
+  distance: "Distance",
 };
 
 export const OPERATOR_TEXT: Record<HighlightOperator, string> = {
@@ -55,7 +57,10 @@ export const OPERATOR_TEXT: Record<HighlightOperator, string> = {
   ">": ">",
 };
 
-/** "Weight < 200 lbs", "Net calories ≤ −500 cal", "Walking ≥ 3 miles", "Yoga ≥ 2 times". */
+/**
+ * "Weight < 200 lbs", "Net calories ≤ −500 cal", "Steps ≥ 10,000", "Distance ≥ 3 mi",
+ * "Walking ≥ 3 miles", "Yoga ≥ 2 times".
+ */
 export function describeRule(rule: HighlightRule, labels: readonly ExerciseType[]): string {
   const op = OPERATOR_TEXT[rule.operator];
   switch (rule.metric) {
@@ -67,6 +72,10 @@ export function describeRule(rule: HighlightRule, labels: readonly ExerciseType[
     }
     case "weight":
       return `Weight ${op} ${formatWeight(rule.target)} lbs`;
+    case "steps":
+      return `Steps ${op} ${formatNumber(rule.target)}`;
+    case "distance":
+      return `Distance ${op} ${formatAmount(rule.target)} mi`;
     case "net":
       return `Net calories ${op} ${formatNumber(rule.target, { signed: true })} cal`;
     default:

@@ -66,6 +66,26 @@ describe("history page", () => {
     ]);
   });
 
+  test("lists steps and distance, with their averages", async () => {
+    fake.setDay("2026-10-02", { steps: 12345, distanceMiles: 5.25 });
+    fake.setDay("2026-09-20", { steps: 8000 });
+    fake.setDay("2026-09-21", { distanceMiles: 2 });
+    const { user } = renderApp("/history?metric=steps");
+    await screen.findByRole("list", { name: "Steps, newest first" });
+    expect(rows("Steps, newest first")).toEqual([
+      ["2026-10-02", "12,345 steps"],
+      ["2026-09-20", "8,000 steps"],
+    ]);
+    expect(screen.getByText(/average/)).toHaveTextContent("2 days · average 10,173 steps");
+
+    await user.selectOptions(screen.getByLabelText("Show"), "Distance");
+    expect(rows("Distance, newest first")).toEqual([
+      ["2026-10-02", "5.25 mi"],
+      ["2026-09-21", "2 mi"],
+    ]);
+    expect(screen.getByText(/average/)).toHaveTextContent("2 days · average 3.63 mi");
+  });
+
   test("opens on the metric in the URL", async () => {
     renderApp("/history?metric=weight");
     expect(await screen.findByRole("list", { name: "Weight, newest first" })).toBeInTheDocument();

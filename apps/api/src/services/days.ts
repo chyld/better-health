@@ -81,6 +81,8 @@ export function getMonth(db: Db, userId: number, month: string): DaySummary[] {
       caloriesOut,
       net: netCalories(caloriesIn, caloriesOut),
       weightLbs: log?.weightLbs ?? null,
+      steps: log?.steps ?? null,
+      distanceMiles: log?.distanceMiles ?? null,
       exerciseCount: counts.get(date) ?? 0,
       exerciseTotals: totals.get(date) ?? [],
       hasNote: Boolean(log?.note),
@@ -151,6 +153,8 @@ export function getDay(db: Db, userId: number, date: string): DayDetail {
     caloriesOut,
     net: netCalories(caloriesIn, caloriesOut),
     weightLbs: log?.weightLbs ?? null,
+    steps: log?.steps ?? null,
+    distanceMiles: log?.distanceMiles ?? null,
     note: log?.note ?? null,
     exercises: listEntries(db, userId, date),
   };
@@ -169,11 +173,15 @@ export function patchDay(
     caloriesIn: current?.caloriesIn ?? null,
     caloriesOut: current?.caloriesOut ?? null,
     weightLbs: current?.weightLbs ?? null,
+    steps: current?.steps ?? null,
+    distanceMiles: current?.distanceMiles ?? null,
     note: current?.note ?? null,
   };
   if (patch.caloriesIn !== undefined) next.caloriesIn = patch.caloriesIn;
   if (patch.caloriesOut !== undefined) next.caloriesOut = patch.caloriesOut;
   if (patch.weightLbs !== undefined) next.weightLbs = patch.weightLbs;
+  if (patch.steps !== undefined) next.steps = patch.steps;
+  if (patch.distanceMiles !== undefined) next.distanceMiles = patch.distanceMiles;
   if (patch.note !== undefined) next.note = patch.note?.trim() ? patch.note : null;
 
   const where = and(eq(dailyLogs.userId, userId), eq(dailyLogs.date, date));
@@ -203,7 +211,7 @@ export function listNotes(db: Db, userId: number): DayNote[] {
     .filter((r): r is DayNote => Boolean(r.note?.trim()));
 }
 
-/** Every day with calories in, calories out or weight logged, newest first. */
+/** Every day with calories in or out, weight, steps or distance logged, newest first. */
 export function listHistory(db: Db, userId: number): HistoryDay[] {
   return db
     .select({
@@ -211,6 +219,8 @@ export function listHistory(db: Db, userId: number): HistoryDay[] {
       caloriesIn: dailyLogs.caloriesIn,
       caloriesOut: dailyLogs.caloriesOut,
       weightLbs: dailyLogs.weightLbs,
+      steps: dailyLogs.steps,
+      distanceMiles: dailyLogs.distanceMiles,
     })
     .from(dailyLogs)
     .where(
@@ -220,6 +230,8 @@ export function listHistory(db: Db, userId: number): HistoryDay[] {
           isNotNull(dailyLogs.caloriesIn),
           isNotNull(dailyLogs.caloriesOut),
           isNotNull(dailyLogs.weightLbs),
+          isNotNull(dailyLogs.steps),
+          isNotNull(dailyLogs.distanceMiles),
         ),
       ),
     )
@@ -256,6 +268,8 @@ export function listLog(db: Db, userId: number): DayDetail[] {
       caloriesOut,
       net: netCalories(caloriesIn, caloriesOut),
       weightLbs: log?.weightLbs ?? null,
+      steps: log?.steps ?? null,
+      distanceMiles: log?.distanceMiles ?? null,
       note: log?.note ?? null,
       exercises: entries.get(date) ?? [],
     };

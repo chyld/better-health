@@ -43,6 +43,8 @@ test("lists every day with anything logged, newest first, with its exercises", a
     caloriesOut: 2400,
     net: -600,
     weightLbs: null,
+    steps: null,
+    distanceMiles: null,
     note: "older",
     exercises: [],
   });

@@ -18,13 +18,14 @@ test("login page is accessible", async ({ page }) => {
 test("calendar with data: accessible and matches the snapshot", async ({ page }) => {
   await login(page);
   for (const [date, values] of [
-    ["2026-10-01", { in: "1850", out: "2600", weight: "182.4" }],
-    ["2026-10-02", { in: "2400", out: "2100", weight: "182.0" }],
+    ["2026-10-01", { in: "1850", out: "2600", weight: "182.4", steps: "12345" }],
+    ["2026-10-02", { in: "2400", out: "2100", weight: "182.0", steps: "8000" }],
   ] as const) {
     const day = await openDay(page, date);
     await fillAndSave(day, "Calories in", values.in);
     await fillAndSave(day, "Calories out", values.out);
     await fillAndSave(day, "Weight", values.weight);
+    await fillAndSave(day, "Steps", values.steps);
     await closeDay(page);
   }
   // Two exercises on the 1st, added through the API with the page's session.

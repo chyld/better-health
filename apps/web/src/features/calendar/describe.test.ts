@@ -8,6 +8,8 @@ const empty: DaySummary = {
   caloriesOut: null,
   net: null,
   weightLbs: null,
+  steps: null,
+  distanceMiles: null,
   exerciseCount: 0,
   exerciseTotals: [],
   hasNote: false,
@@ -34,13 +36,15 @@ describe("describeDay", () => {
           caloriesOut: 2600,
           net: -750,
           weightLbs: 182.4,
+          steps: 12345,
+          distanceMiles: 5.25,
           exerciseCount: 2,
           hasNote: true,
         },
         { today: true },
       ),
     ).toBe(
-      "Friday, October 2, today, in 1850, out 2600, net minus 750, weight 182.4 pounds, 2 exercises, has a note",
+      "Friday, October 2, today, in 1850, out 2600, net minus 750, weight 182.4 pounds, 12345 steps, 5.25 miles, 2 exercises, has a note",
     );
   });
 
@@ -48,6 +52,12 @@ describe("describeDay", () => {
     expect(
       describeDay({ ...empty, caloriesIn: 3000, caloriesOut: 2000, net: 1000, exerciseCount: 1 }),
     ).toBe("Friday, October 2, in 3000, out 2000, net 1000, 1 exercise");
+  });
+
+  test("a single step or mile", () => {
+    expect(describeDay({ ...empty, steps: 1, distanceMiles: 1 })).toBe(
+      "Friday, October 2, 1 step, 1 mile",
+    );
   });
 
   test("names the highlight rule the day meets", () => {

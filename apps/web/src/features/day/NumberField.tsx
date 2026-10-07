@@ -19,15 +19,18 @@ interface Props {
   label: string;
   value: number | null;
   schema: z.ZodType<number>;
+  /** Allows a decimal point on phone keypads. */
   decimal?: boolean;
+  /** How a saved value reads in the field: 182.4 → "182.4" by default. */
+  format?: (value: number) => string;
   suffix?: string;
   icon?: ReactNode;
   tone?: (typeof metricTone)[keyof typeof metricTone];
   onSave: (value: number | null) => void;
 }
 
-const toText = (v: number | null, decimal: boolean) =>
-  v === null ? "" : decimal ? v.toFixed(1) : String(v);
+const toText = (v: number | null, format: (value: number) => string) =>
+  v === null ? "" : format(v);
 
 /** A number input that saves itself shortly after typing stops, and on blur. Empty clears. */
 export function NumberField({
@@ -35,13 +38,14 @@ export function NumberField({
   value,
   schema,
   decimal = false,
+  format = String,
   suffix,
   icon,
   tone,
   onSave,
 }: Props) {
   const id = useId();
-  const [text, setText] = useState(() => toText(value, decimal));
+  const [text, setText] = useState(() => toText(value, format));
   const [error, setError] = useState<string | null>(null);
   const focused = useRef(false);
   const lastSent = useRef(value);
@@ -55,10 +59,10 @@ export function NumberField({
   useEffect(() => {
     lastSent.current = value;
     if (!focused.current) {
-      setText(toText(value, decimal));
+      setText(toText(value, format));
       setError(null);
     }
-  }, [value, decimal]);
+  }, [value, format]);
 
   function change(raw: string) {
     setText(raw);

@@ -72,7 +72,7 @@ export function DayCell({
   );
 }
 
-/** Net calories, number of exercises and weight: the same three rows on every screen. */
+/** Net calories, number of exercises, weight and steps: the same rows on every screen. */
 function Values({ day }: { day: DaySummary }) {
   const rows: {
     key: string;
@@ -113,6 +113,16 @@ function Values({ day }: { day: DaySummary }) {
       compact: w,
       full: w,
       tone: `${metricTone.weight.card} ${metricTone.weight.text}`,
+    });
+  }
+  if (day.steps !== null) {
+    rows.push({
+      key: "steps",
+      short: "St",
+      long: "Steps",
+      compact: formatCompact(day.steps),
+      full: formatNumber(day.steps),
+      tone: `${metricTone.steps.card} ${metricTone.steps.text}`,
     });
   }
   return (

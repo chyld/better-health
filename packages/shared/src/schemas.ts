@@ -19,6 +19,8 @@ export const isoMonthSchema = z.string().refine(isValidIsoMonth, "Expected a mon
 export const CALORIES_MAX = 20_000;
 export const WEIGHT_MIN = 50;
 export const WEIGHT_MAX = 1_000;
+export const STEPS_MAX = 200_000;
+export const DISTANCE_MAX = 200;
 export const DAY_NOTE_MAX = 10_000;
 export const EXERCISE_NAME_MAX = 50;
 export const EXERCISE_UNIT_MAX = 20;
@@ -38,11 +40,29 @@ export const weightSchema = z
   .max(WEIGHT_MAX, `Weight must be at most ${WEIGHT_MAX} lbs`)
   .refine((n) => Math.abs(n * 10 - Math.round(n * 10)) < 1e-9, "Weight allows one decimal place");
 
+export const stepsSchema = z
+  .number()
+  .int("Steps must be a whole number")
+  .min(0, "Steps cannot be negative")
+  .max(STEPS_MAX, `Steps must be at most ${STEPS_MAX}`);
+
+/** Miles walked or run in the day, in total; separate from miles logged on exercises. */
+export const distanceSchema = z
+  .number()
+  .min(0, "Distance cannot be negative")
+  .max(DISTANCE_MAX, `Distance must be at most ${DISTANCE_MAX} miles`)
+  .refine(
+    (n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-9,
+    "Distance allows two decimal places",
+  );
+
 export const dayPatchSchema = z
   .strictObject({
     caloriesIn: caloriesSchema.nullable().optional(),
     caloriesOut: caloriesSchema.nullable().optional(),
     weightLbs: weightSchema.nullable().optional(),
+    steps: stepsSchema.nullable().optional(),
+    distanceMiles: distanceSchema.nullable().optional(),
     note: z.string().max(DAY_NOTE_MAX).nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, "Nothing to update");
