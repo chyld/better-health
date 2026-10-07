@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { Hono } from "hono";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
@@ -6,6 +7,7 @@ import type { Db } from "./db/client";
 import { type Clock, systemClock } from "./lib/clock";
 import { AppError } from "./lib/errors";
 import { FailureLimiter } from "./lib/rate-limit";
+import { resolveVersion } from "./lib/version";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { dataRoutes } from "./routes/data";
@@ -18,10 +20,15 @@ export interface AppOptions {
   cookieSecure?: boolean;
   /** Mounts /api/test/reset. Only ever true when NODE_ENV=test. */
   testSupport?: boolean;
+  /** Reported by /api/health; defaults to this checkout's version. */
+  version?: string;
 }
+
+const REPO_ROOT = join(import.meta.dir, "../../..");
 
 export function createApp(options: AppOptions) {
   const clock = options.clock ?? systemClock;
+  const version = options.version ?? resolveVersion(REPO_ROOT);
   const deps: Deps = {
     db: options.db,
     clock,
@@ -32,7 +39,7 @@ export function createApp(options: AppOptions) {
   const app = new Hono<AppEnv>()
     .basePath("/api")
     .use(csrf())
-    .get("/health", (c) => c.json({ status: "ok" }, 200))
+    .get("/health", (c) => c.json({ status: "ok", version }, 200))
     .route("/auth", authRoutes(deps))
     .route("/", dataRoutes(deps))
     .route("/admin", adminRoutes(deps));

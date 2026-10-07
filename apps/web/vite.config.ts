@@ -3,8 +3,15 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
+import { resolveVersion } from "../api/src/lib/version";
 
 export default defineConfig({
+  // Baked into the bundle, so the page can show which version it is running.
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      resolveVersion(fileURLToPath(new URL("../..", import.meta.url))),
+    ),
+  },
   plugins: [
     react(),
     tailwindcss(),

@@ -1,10 +1,10 @@
-# Only what the image build needs; never the database.
+# Only what the image build needs; never the database. .git stays: the build stage reads the
+# commit for the version shown in the app, and only a VERSION file reaches the final image.
 **/node_modules
 **/dist
 data
 *.db
 *.db-*
-.git
 .env
 .env.*
 coverage

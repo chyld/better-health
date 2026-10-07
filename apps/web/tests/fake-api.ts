@@ -42,6 +42,8 @@ function createFake() {
     entries: [] as EntryRow[],
     types: [] as TypeRow[],
     highlights: [] as HighlightRule[],
+    /** What /api/health reports; the same as the client unless a test changes it. */
+    serverVersion: __APP_VERSION__,
     nextId: 1,
     /** Every mutating request, for assertions. */
     requests: [] as { method: string; path: string; body: unknown }[],
@@ -129,6 +131,9 @@ function createFake() {
   }
 
   const handlers = [
+    http.get("*/api/health", () =>
+      HttpResponse.json({ status: "ok", version: state.serverVersion }),
+    ),
     http.post("*/api/auth/login", async ({ request }) => {
       const body = (await request.json()) as { username: string; password: string };
       if (body.password !== PASSWORD) {
@@ -382,6 +387,7 @@ function createFake() {
       return row;
     },
     reset() {
+      state.serverVersion = __APP_VERSION__;
       state.user = null;
       state.highlights = [];
       state.days.clear();

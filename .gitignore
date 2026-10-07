@@ -8,6 +8,7 @@ coverage/
 *.db-*
 *.sqlite
 data/
+/VERSION
 test-results/
 playwright-report/
 .DS_Store

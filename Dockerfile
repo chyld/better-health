@@ -13,7 +13,8 @@ COPY packages/shared/package.json packages/shared/
 # --ignore-scripts skips the git hook install, which needs a git checkout.
 RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN bun run build
+# The web build bakes in the same version the server reports from VERSION.
+RUN bun apps/api/src/lib/version.ts > VERSION && bun run build
 
 # Runtime dependencies only.
 FROM oven/bun:${BUN_VERSION} AS deps
@@ -35,6 +36,7 @@ COPY package.json ./
 COPY apps/api apps/api
 COPY packages/shared packages/shared
 COPY --from=build /app/apps/web/dist apps/web/dist
+COPY --from=build /app/VERSION ./
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod 755 /usr/local/bin/entrypoint
 EXPOSE 3000

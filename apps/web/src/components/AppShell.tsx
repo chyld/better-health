@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { VersionFooter } from "@/components/VersionFooter";
 import type { CurrentUser } from "@/features/auth/queries";
 import { useLogout } from "@/features/auth/queries";
 
@@ -82,6 +83,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </nav>
       </header>
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <VersionFooter />
     </div>
   );
 }
