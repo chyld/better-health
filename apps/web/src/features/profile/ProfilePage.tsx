@@ -2,7 +2,6 @@ import {
   baseCaloriesOn,
   baseCaloriesSchema,
   formatNumber,
-  HIGHLIGHT_COLORS,
   HIGHLIGHT_OPERATORS,
   type HighlightColor,
   type HighlightOperator,
@@ -28,10 +27,12 @@ import { Label } from "@/components/ui/label";
 import { meQuery, useSetTimeZone } from "@/features/auth/queries";
 import { exerciseTypesQuery } from "@/features/labels/queries";
 import { ApiError } from "@/lib/api";
-import { highlightTone, metricTone } from "@/lib/tones";
+import { paletteTone } from "@/lib/palette";
+import { metricTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 import { baseCaloriesQuery, useSetBaseCalories } from "./baseCalories";
 import { CellFieldsSection } from "./CellFieldsSection";
+import { ColorGrid } from "./ColorGrid";
 import { Field, Select } from "./controls";
 import {
   describeRule,
@@ -339,7 +340,7 @@ function Highlights() {
         <ol aria-label="Highlights, first match wins" className="space-y-2">
           {rules.map((rule, i) => {
             const text = describeRule(rule, labels);
-            const tone = highlightTone[rule.color];
+            const tone = paletteTone[rule.color];
             return (
               <li
                 key={rule.id}
@@ -498,38 +499,13 @@ function AddRuleForm() {
         </p>
       )}
 
-      <fieldset className="space-y-1">
-        <legend className="text-xs font-medium">Color</legend>
-        <div className="flex flex-wrap gap-2">
-          {HIGHLIGHT_COLORS.map((c) => {
-            const tone = highlightTone[c];
-            return (
-              <label
-                key={c}
-                title={tone.name}
-                className={cn(
-                  "grid size-10 cursor-pointer place-items-center rounded-lg ring-2 transition-transform has-[:checked]:scale-110 has-[:checked]:ring-violet-700 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
-                  tone.cell,
-                  tone.ring,
-                )}
-              >
-                <input
-                  type="radio"
-                  name={`${id}-color`}
-                  value={c}
-                  checked={color === c}
-                  onChange={() => change(() => setColor(c))}
-                  className="sr-only"
-                />
-                <span className="sr-only">{tone.name}</span>
-                {color === c && (
-                  <span aria-hidden="true" className="size-2.5 rounded-full bg-violet-900" />
-                )}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
+      <ColorGrid
+        name={`${id}-color`}
+        legend="Color"
+        swatch="cell"
+        value={color}
+        onChange={(c) => c && change(() => setColor(c))}
+      />
 
       <Button type="submit" className="w-full sm:w-auto" disabled={!rule || create.isPending}>
         Add highlight

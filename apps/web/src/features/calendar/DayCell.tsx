@@ -5,7 +5,7 @@ import {
   type HighlightColor,
 } from "@better-health/shared";
 import { cellTone, fieldKey, formatCellValue } from "@/features/profile/cellFields";
-import { highlightTone } from "@/lib/tones";
+import { paletteTone } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 import { describeDay } from "./describe";
 
@@ -32,7 +32,7 @@ export function DayCell({
   tabIndex,
   onSelect,
 }: Props) {
-  const tone = highlight && highlightTone[highlight.color];
+  const tone = highlight && paletteTone[highlight.color];
   const dayNumber = Number(day.date.slice(8));
   return (
     <button

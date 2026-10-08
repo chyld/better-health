@@ -31,8 +31,8 @@ test("a highlight rule on the Profile page colors matching days", async ({ page 
   await form.getByLabel("Metric").selectOption({ label: "Weight" });
   await form.getByLabel("Condition").selectOption({ label: "<" });
   await form.getByLabel("Amount").fill("200");
-  await form.getByTitle("Teal").click();
-  await expect(form.getByRole("radio", { name: "Teal" })).toBeChecked();
+  await form.getByTitle("Teal", { exact: true }).click();
+  await expect(form.getByRole("radio", { name: "Teal", exact: true })).toBeChecked();
   await form.getByRole("button", { name: "Add highlight" }).click();
   const list = page.getByRole("list", { name: "Highlights, first match wins" });
   await expect(list.getByRole("listitem")).toHaveText(["Weight < 200.0 lbs · Teal"]);
@@ -70,7 +70,12 @@ test("calendar cells show the values chosen on the Profile page", async ({ page 
   await list.getByRole("button", { name: "Remove Net calories" }).click();
   await list.getByRole("button", { name: "Remove Exercises logged (all)" }).click();
   await expect(list.getByRole("listitem")).toHaveCount(3);
+  await list.getByRole("button", { name: "Color of Calories in: Automatic" }).click();
   await expectNoA11yViolations(page);
+  await list.getByTitle("Pink, bold").click();
+  await expect(
+    list.getByRole("button", { name: "Color of Calories in: Pink, bold" }),
+  ).toBeVisible();
 
   await page.getByRole("link", { name: "Back to calendar" }).click();
   await expect(values).toHaveCount(3);
@@ -78,4 +83,5 @@ test("calendar cells show the values chosen on the Profile page", async ({ page 
   await expect(values.nth(1)).toHaveAttribute("data-value", "steps");
   await expect(values.nth(2)).toHaveAttribute("data-value", "in");
   await expect(values.nth(2)).toContainText("Ate");
+  await expect(values.nth(2)).toHaveClass(/bg-pink-700/);
 });

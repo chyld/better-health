@@ -67,6 +67,32 @@ describe("calendar cell fields", () => {
     expect(((await after.json()) as CellField[]).map((f) => f.caption)).toEqual(["St", "Net"]);
   });
 
+  test("each has a colour, automatic until one is picked", async () => {
+    const s = await setup();
+    const [net] = await s.list();
+    expect(net?.color).toBeNull();
+    const res = await s.send("PATCH", `/api/cell-fields/${net?.id}`, { color: "teal-bold" });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as CellField[])[0]).toMatchObject({
+      caption: "N",
+      color: "teal-bold",
+    });
+    await s.send("PATCH", `/api/cell-fields/${net?.id}`, { color: null });
+    expect((await s.list())[0]?.color).toBeNull();
+
+    await s.add({ metric: "in", exerciseTypeId: null, caption: "In", color: "amber" });
+    expect((await s.list()).at(-1)?.color).toBe("amber");
+  });
+
+  test.each([{ color: "gold" }, { color: "teal-dark" }, {}, { caption: "N", x: 1 }])(
+    "rejects the update %p",
+    async (body) => {
+      const s = await setup();
+      const [net] = await s.list();
+      expect((await s.send("PATCH", `/api/cell-fields/${net?.id}`, body)).status).toBe(400);
+    },
+  );
+
   test("all can be removed", async () => {
     const s = await setup();
     for (const f of await s.list()) await s.send("DELETE", `/api/cell-fields/${f.id}`);

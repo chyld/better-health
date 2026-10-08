@@ -50,6 +50,55 @@ describe("profile page", () => {
     expect(within(list).getByText("Walking · miles")).toBeInTheDocument();
   });
 
+  test("picks a colour for a calendar cell value, or goes back to automatic", async () => {
+    const { user } = renderApp("/profile");
+    const list = await screen.findByRole("list", { name: "Calendar cell values, in order" });
+    const button = within(list).getByRole("button", { name: "Color of Net calories: Automatic" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    await user.click(button);
+
+    const grid = within(list).getByRole("group", { name: "Color of Net calories" });
+    expect(within(grid).getAllByRole("radio")).toHaveLength(33);
+    expect(within(grid).getByRole("radio", { name: "Automatic" })).toBeChecked();
+    await user.click(within(grid).getByRole("radio", { name: "Teal, bold" }));
+
+    await waitFor(() => expect(fake.state.cellFields[0]?.color).toBe("teal-bold"));
+    expect(within(list).queryByRole("group", { name: "Color of Net calories" })).toBeNull();
+    const pill = document.querySelector('figure [data-value="net"]');
+    expect(pill).toHaveClass("bg-teal-700", "text-white");
+
+    await user.click(
+      within(list).getByRole("button", { name: "Color of Net calories: Teal, bold" }),
+    );
+    await user.click(within(list).getByRole("radio", { name: "Automatic" }));
+    await waitFor(() => expect(fake.state.cellFields[0]?.color).toBeNull());
+    // Automatic: net is coloured by its sign again (the sample day is a deficit).
+    expect(document.querySelector('figure [data-value="net"]')).toHaveClass("bg-emerald-100");
+  });
+
+  test("Escape closes the colour picker", async () => {
+    const { user } = renderApp("/profile");
+    const list = await screen.findByRole("list", { name: "Calendar cell values, in order" });
+    await user.click(within(list).getByRole("button", { name: "Color of Weight: Automatic" }));
+    await user.click(within(list).getByRole("radio", { name: "Automatic" }));
+    await user.keyboard("{Escape}");
+    expect(within(list).queryByRole("group", { name: "Color of Weight" })).toBeNull();
+  });
+
+  test("highlights choose from the same 32 colours", async () => {
+    const { user } = renderApp("/profile");
+    const form = await screen.findByRole("form", { name: "Add highlight" });
+    expect(within(form).getAllByRole("radio")).toHaveLength(32);
+    await user.type(within(form).getByLabelText("Amount"), "200");
+    await user.click(within(form).getByRole("radio", { name: "Indigo, bold" }));
+    await user.click(within(form).getByRole("button", { name: "Add highlight" }));
+    await waitFor(() => expect(fake.state.highlights[0]?.color).toBe("indigo-bold"));
+    const list = await screen.findByRole("list", { name: "Highlights, first match wins" });
+    expect(within(list).getByRole("listitem")).toHaveTextContent(
+      "Weight < 200.0 lbs · Indigo, bold",
+    );
+  });
+
   test("a caption must fit", async () => {
     const { user } = renderApp("/profile");
     const form = await screen.findByRole("form", { name: "Add a calendar cell value" });

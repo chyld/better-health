@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PALETTE_COLORS, type PaletteColor } from "./palette";
 import { exerciseUnitSchema } from "./schemas";
 import type { DaySummary, HighlightRule } from "./types";
 
@@ -16,17 +17,9 @@ export type HighlightMetric = (typeof HIGHLIGHT_METRICS)[number];
 export const HIGHLIGHT_OPERATORS = ["<", "<=", "=", ">=", ">"] as const;
 export type HighlightOperator = (typeof HIGHLIGHT_OPERATORS)[number];
 
-export const HIGHLIGHT_COLORS = [
-  "red",
-  "orange",
-  "yellow",
-  "green",
-  "teal",
-  "blue",
-  "purple",
-  "pink",
-] as const;
-export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
+/** Highlight rules colour cells from the shared 32-colour palette. */
+export const HIGHLIGHT_COLORS = PALETTE_COLORS;
+export type HighlightColor = PaletteColor;
 
 export const HIGHLIGHT_RULES_MAX = 50;
 export const HIGHLIGHT_TARGET_MAX = 100_000;

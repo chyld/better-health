@@ -30,6 +30,18 @@ async function setup(username = "alice") {
 }
 
 describe("highlight rules", () => {
+  test("any of the 32 palette colours can be used", async () => {
+    const s = await setup();
+    const res = await s.send("POST", "/api/highlights", {
+      ...weightUnder200,
+      color: "indigo-bold",
+    });
+    expect(res.status).toBe(201);
+    expect(
+      (await s.send("POST", "/api/highlights", { ...weightUnder200, color: "gold" })).status,
+    ).toBe(400);
+  });
+
   test("a new user has none", async () => {
     const s = await setup();
     expect(await s.list()).toEqual([]);

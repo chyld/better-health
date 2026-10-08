@@ -47,6 +47,7 @@ const defaultCellFields = (): CellField[] =>
     id: 1000 + i,
     exerciseTypeId: null,
     unit: null,
+    color: null,
     ...f,
     sortOrder: i,
   }));
@@ -344,6 +345,7 @@ function createFake() {
         id: state.nextId++,
         ...body,
         unit: body.unit ?? null,
+        color: body.color ?? null,
         sortOrder: state.cellFields.length,
       });
       return HttpResponse.json(state.cellFields, { status: 201 });
@@ -361,10 +363,10 @@ function createFake() {
     http.patch("*/api/cell-fields/:id", async ({ request, params }) => {
       if (!state.user) return unauthorized();
       const id = Number(params.id);
-      const { caption } = (await record(request, `/api/cell-fields/${id}`)) as { caption: string };
+      const body = (await record(request, `/api/cell-fields/${id}`)) as Partial<CellField>;
       const f = state.cellFields.find((x) => x.id === id);
       if (!f) return notFound();
-      f.caption = caption;
+      Object.assign(f, body);
       return HttpResponse.json(state.cellFields);
     }),
     http.delete("*/api/cell-fields/:id", async ({ request, params }) => {

@@ -1,4 +1,9 @@
-import { CELL_FIELDS_MAX, type CellField, type cellFieldCreateSchema } from "@better-health/shared";
+import {
+  CELL_FIELDS_MAX,
+  type CellField,
+  type CellFieldPatch,
+  type cellFieldCreateSchema,
+} from "@better-health/shared";
 import { and, asc, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { Db } from "../db/client";
@@ -15,6 +20,7 @@ export function listCellFields(db: Db, userId: number): CellField[] {
       exerciseTypeId: cellFields.exerciseTypeId,
       unit: cellFields.unit,
       caption: cellFields.caption,
+      color: cellFields.color,
       sortOrder: cellFields.sortOrder,
     })
     .from(cellFields)
@@ -52,11 +58,11 @@ export function updateCellField(
   db: Db,
   userId: number,
   id: number,
-  { caption }: { caption: string },
+  patch: CellFieldPatch,
 ): CellField[] {
   const updated = db
     .update(cellFields)
-    .set({ caption })
+    .set(patch)
     .where(and(eq(cellFields.id, id), eq(cellFields.userId, userId)))
     .returning({ id: cellFields.id })
     .all();

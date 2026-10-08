@@ -12,14 +12,16 @@ import {
 } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp, LayoutGrid, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, LayoutGrid, Palette, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DayCell } from "@/features/calendar/DayCell";
 import { exerciseTypesQuery } from "@/features/labels/queries";
 import { ApiError } from "@/lib/api";
+import { paletteTone } from "@/lib/palette";
 import { cn } from "@/lib/utils";
+import { ColorGrid } from "./ColorGrid";
 import {
   CELL_METRIC_NAMES,
   cellFieldsQuery,
@@ -41,7 +43,7 @@ export function CellFieldsSection() {
   const mutations = useCellFieldMutations();
   const fields = data ?? [];
   const error = errorText(
-    mutations.remove.error ?? mutations.reorder.error ?? mutations.rename.error,
+    mutations.remove.error ?? mutations.reorder.error ?? mutations.update.error,
   );
   const busy = mutations.remove.isPending || mutations.reorder.isPending;
 
@@ -134,46 +136,84 @@ function FieldRow({
   busy: boolean;
   onMove: (delta: -1 | 1) => void;
 }) {
-  const { remove } = useCellFieldMutations();
+  const { remove, update } = useCellFieldMutations();
+  const [choosing, setChoosing] = useState(false);
   const text = describeField(field, labels);
+  const colorName = field.color ? paletteTone[field.color].name : "Automatic";
+  const pickerId = useId();
   return (
-    <li className="flex items-center gap-2 rounded-xl p-1.5 pl-2 ring-1 ring-violet-100">
-      <CaptionInput field={field} name={text} />
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{text}</span>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label={`Move ${text} up`}
-        disabled={first || busy}
-        onClick={() => onMove(-1)}
-      >
-        <ArrowUp />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label={`Move ${text} down`}
-        disabled={last || busy}
-        onClick={() => onMove(1)}
-      >
-        <ArrowDown />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label={`Remove ${text}`}
-        disabled={busy}
-        onClick={() => remove.mutate(field.id)}
-      >
-        <Trash2 />
-      </Button>
+    <li
+      className="space-y-2 rounded-xl p-1.5 pl-2 ring-1 ring-violet-100"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && choosing) {
+          e.stopPropagation();
+          setChoosing(false);
+        }
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <CaptionInput field={field} name={text} />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{text}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Color of ${text}: ${colorName}`}
+          aria-expanded={choosing}
+          aria-controls={pickerId}
+          title={colorName}
+          onClick={() => setChoosing((open) => !open)}
+        >
+          <Palette />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Move ${text} up`}
+          disabled={first || busy}
+          onClick={() => onMove(-1)}
+        >
+          <ArrowUp />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Move ${text} down`}
+          disabled={last || busy}
+          onClick={() => onMove(1)}
+        >
+          <ArrowDown />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Remove ${text}`}
+          disabled={busy}
+          onClick={() => remove.mutate(field.id)}
+        >
+          <Trash2 />
+        </Button>
+      </div>
+      {choosing && (
+        <div id={pickerId} className="pb-1">
+          <ColorGrid
+            name={`${pickerId}-color`}
+            legend={`Color of ${text}`}
+            swatch="pill"
+            automatic
+            value={field.color}
+            onChange={(color) =>
+              update.mutate({ id: field.id, color }, { onSuccess: () => setChoosing(false) })
+            }
+          />
+        </div>
+      )}
     </li>
   );
 }
 
 /** The caption, in the value's colours; it saves on Enter or when it loses focus. */
 function CaptionInput({ field, name }: { field: CellField; name: string }) {
-  const { rename } = useCellFieldMutations();
+  const { update } = useCellFieldMutations();
   const [text, setText] = useState(field.caption);
   const [error, setError] = useState<string | null>(null);
 
@@ -187,7 +227,7 @@ function CaptionInput({ field, name }: { field: CellField; name: string }) {
     }
     setError(null);
     setText(parsed.data);
-    if (parsed.data !== field.caption) rename.mutate({ id: field.id, caption: parsed.data });
+    if (parsed.data !== field.caption) update.mutate({ id: field.id, caption: parsed.data });
   }
 
   return (

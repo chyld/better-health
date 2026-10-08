@@ -71,6 +71,13 @@
       "when": 1791497610314,
       "tag": "0009_cell_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791500475637,
+      "tag": "0010_cell_field_colors",
+      "breakpoints": true
     }
   ]
 }

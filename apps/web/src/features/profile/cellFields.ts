@@ -1,6 +1,7 @@
 import {
   type CellField,
   type CellFieldCreate,
+  type CellFieldPatch,
   type CellMetric,
   type ExerciseType,
   formatAmount,
@@ -10,6 +11,7 @@ import {
 } from "@better-health/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
+import { paletteTone } from "@/lib/palette";
 import { labelTone, metricTone, netTone } from "@/lib/tones";
 
 /** What the user's calendar cells show, in order. */
@@ -26,9 +28,9 @@ export function useCellFieldMutations() {
       mutationFn: (json: CellFieldCreate) => unwrap(api["cell-fields"].$post({ json })),
       onSuccess: write,
     }),
-    rename: useMutation({
-      mutationFn: ({ id, caption }: { id: number; caption: string }) =>
-        unwrap(api["cell-fields"][":id"].$patch({ param: { id: String(id) }, json: { caption } })),
+    update: useMutation({
+      mutationFn: ({ id, ...json }: CellFieldPatch & { id: number }) =>
+        unwrap(api["cell-fields"][":id"].$patch({ param: { id: String(id) }, json })),
       onSuccess: write,
     }),
     remove: useMutation({
@@ -92,8 +94,12 @@ export function formatCellValue(
   }
 }
 
-/** Background and text colour of a value's pill on a cell. */
-export function cellTone(field: Pick<CellField, "metric" | "exerciseTypeId">, value: number) {
+/** Background and text colour of a value's pill on a cell: its chosen colour, or its own. */
+export function cellTone(
+  field: Pick<CellField, "metric" | "exerciseTypeId" | "color">,
+  value: number,
+) {
+  if (field.color) return paletteTone[field.color].pill;
   const card = (t: { card: string; text: string }) => `${t.card} ${t.text}`;
   switch (field.metric) {
     case "net":

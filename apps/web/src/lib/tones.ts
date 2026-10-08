@@ -1,5 +1,3 @@
-import type { HighlightColor } from "@better-health/shared";
-
 /**
  * Colours for each metric, and a rotating palette that gives every exercise label its own
  * colour. Full class names are spelled out so Tailwind can find them.
@@ -89,15 +87,3 @@ const LABEL_TONES = [
 export function labelTone(id: number) {
   return LABEL_TONES[Math.abs(id) % LABEL_TONES.length] as (typeof LABEL_TONES)[number];
 }
-
-/** Cell backgrounds for calendar highlight rules, and the swatch that picks each one. */
-export const highlightTone: Record<HighlightColor, { name: string; cell: string; ring: string }> = {
-  red: { name: "Red", cell: "bg-red-200", ring: "ring-red-400" },
-  orange: { name: "Orange", cell: "bg-orange-200", ring: "ring-orange-400" },
-  yellow: { name: "Yellow", cell: "bg-yellow-200", ring: "ring-yellow-400" },
-  green: { name: "Green", cell: "bg-green-200", ring: "ring-green-400" },
-  teal: { name: "Teal", cell: "bg-teal-200", ring: "ring-teal-400" },
-  blue: { name: "Blue", cell: "bg-blue-200", ring: "ring-blue-400" },
-  purple: { name: "Purple", cell: "bg-purple-200", ring: "ring-purple-400" },
-  pink: { name: "Pink", cell: "bg-pink-200", ring: "ring-pink-400" },
-};

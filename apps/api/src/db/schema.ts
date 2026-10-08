@@ -3,6 +3,7 @@ import {
   HIGHLIGHT_COLORS,
   HIGHLIGHT_METRICS,
   HIGHLIGHT_OPERATORS,
+  PALETTE_COLORS,
 } from "@better-health/shared";
 import { sql } from "drizzle-orm";
 import {
@@ -161,6 +162,8 @@ export const cellFields = sqliteTable(
     // Exercise fields only: the unit to total, or null to count entries.
     unit: text("unit"),
     caption: text("caption").notNull(),
+    // A palette colour, or null for the value's own colours.
+    color: text("color", { enum: PALETTE_COLORS }),
     sortOrder: integer("sort_order").notNull(),
   },
   (t) => [index("cell_fields_user_idx").on(t.userId)],

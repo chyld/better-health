@@ -91,6 +91,7 @@ describe("cellFieldCreateSchema", () => {
       exerciseTypeId: null,
       unit: null,
       caption: "N",
+      color: null,
     });
   });
   test.each([

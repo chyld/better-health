@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { highlightValue } from "./highlights";
+import { PALETTE_COLORS } from "./palette";
 import { exerciseUnitSchema } from "./schemas";
 import type { CellField, DaySummary } from "./types";
 
@@ -38,6 +39,8 @@ export const cellFieldCreateSchema = z
     /** Label fields only: the unit to total, or null to count how many times. */
     unit: exerciseUnitSchema.nullable().default(null),
     caption: cellCaptionSchema,
+    /** null: the value's own colours. */
+    color: z.enum(PALETTE_COLORS).nullable().default(null),
   })
   .refine((f) => (f.metric === "exercise") === (f.exerciseTypeId !== null), {
     message: "Pick an exercise label for an exercise field, and only then",
@@ -49,7 +52,13 @@ export const cellFieldCreateSchema = z
   });
 export type CellFieldCreate = z.input<typeof cellFieldCreateSchema>;
 
-export const cellFieldPatchSchema = z.strictObject({ caption: cellCaptionSchema });
+export const cellFieldPatchSchema = z
+  .strictObject({
+    caption: cellCaptionSchema.optional(),
+    color: z.enum(PALETTE_COLORS).nullable().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, "Nothing to update");
+export type CellFieldPatch = z.infer<typeof cellFieldPatchSchema>;
 
 export const cellFieldOrderSchema = z.strictObject({
   ids: z

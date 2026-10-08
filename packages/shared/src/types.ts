@@ -1,5 +1,6 @@
 import type { CellMetric } from "./cells";
 import type { HighlightColor, HighlightMetric, HighlightOperator } from "./highlights";
+import type { PaletteColor } from "./palette";
 
 /** Response shapes shared by the API and the web app. */
 
@@ -129,5 +130,7 @@ export interface CellField {
   /** For exercise fields: the unit whose total is shown, or null to count entries. */
   unit: string | null;
   caption: string;
+  /** null keeps the value's own colours: net by its sign, a label by its colour. */
+  color: PaletteColor | null;
   sortOrder: number;
 }
