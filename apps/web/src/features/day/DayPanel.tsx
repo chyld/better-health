@@ -8,7 +8,7 @@ import {
   weightSchema,
 } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
-import { Flame, Footprints, Lock, Route, Scale, Sparkles, Utensils } from "lucide-react";
+import { Flame, Footprints, Lock, Route, Scale, Sparkles, Utensils, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { longDate } from "@/features/calendar/describe";
 import { ApiError } from "@/lib/api";
@@ -28,12 +28,15 @@ export function DayPanel({
   heading = true,
   locked = false,
   focusExercise,
+  onClose,
 }: {
   date: string;
   heading?: boolean;
   locked?: boolean;
   /** Each new value focuses the exercise stickers, once they have loaded. */
   focusExercise?: number;
+  /** Shows a close button beside the heading (the desktop side panel). */
+  onClose?: () => void;
 }) {
   const { data: day, isError, refetch } = useQuery(dayQuery(date));
   const update = useUpdateDay(date);
@@ -42,9 +45,22 @@ export function DayPanel({
   return (
     <section aria-label={`Details for ${longDate(date)}`} className="space-y-6 p-4 lg:space-y-5">
       {heading ? (
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           <h2 className="text-xl font-extrabold tracking-tight">{longDate(date)}</h2>
-          <SaveStatus pending={update.isPending} error={update.error} saved={update.isSuccess} />
+          <div className="flex items-center gap-1">
+            <SaveStatus pending={update.isPending} error={update.error} saved={update.isSuccess} />
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="Close day details"
+                onClick={onClose}
+              >
+                <X />
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         // In the phone sheet the title sits above; the status rides beside the close button.

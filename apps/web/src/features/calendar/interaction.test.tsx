@@ -62,15 +62,28 @@ describe("keyboard on desktop", () => {
 
   test("e moves focus to the exercise stickers", async () => {
     fake.addType("Walking");
-    const { user } = renderApp("/");
+    const { user } = renderApp("/calendar/2026-10?day=2026-10-02");
     const panel = await screen.findByRole("complementary", { name: "Day details" });
     const sticker = await within(panel).findByRole("button", { name: "Log Walking" });
     await user.keyboard("e");
     expect(sticker).toHaveFocus();
   });
 
+  test("e with no day open opens today at its stickers", async () => {
+    fake.addType("Walking");
+    const { user, history } = renderApp("/");
+    await screen.findByRole("grid");
+    expect(screen.queryByRole("complementary", { name: "Day details" })).toBeNull();
+    await user.keyboard("e");
+    const panel = await screen.findByRole("complementary", { name: "Day details" });
+    await waitFor(() =>
+      expect(within(panel).getByRole("button", { name: "Log Walking" })).toHaveFocus(),
+    );
+    expect(history.location.search).toContain("day=2026-10-02");
+  });
+
   test("shortcuts are ignored while typing", async () => {
-    const { user } = renderApp("/");
+    const { user } = renderApp("/calendar/2026-10?day=2026-10-02");
     const panel = await screen.findByRole("complementary", { name: "Day details" });
     await user.type(await within(panel).findByLabelText("Notes"), "t]e");
     expect(screen.getByRole("heading", { name: "October 2026" })).toBeInTheDocument();

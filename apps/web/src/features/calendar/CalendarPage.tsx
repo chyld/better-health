@@ -32,9 +32,9 @@ export function CalendarPage() {
   const highlightFor = useHighlighter();
   const fields = useQuery(cellFieldsQuery).data ?? [];
 
-  // A selected day outside the shown month is ignored.
+  // A selected day outside the shown month is ignored. On desktop the side panel shows it;
+  // with nothing selected the calendar has the full width.
   const selected = day?.startsWith(month) ? day : undefined;
-  const panelDate = selected ?? (isDesktop && today.startsWith(month) ? today : undefined);
 
   const select = (date: string | undefined) =>
     navigate({ search: date ? { day: date } : {}, replace: true });
@@ -43,6 +43,15 @@ export function CalendarPage() {
   const goMonth = (delta: number) =>
     navigate({ params: { month: shiftMonth(month, delta) }, search: {} });
   const goToday = () => navigate({ params: { month: today.slice(0, 7) }, search: { day: today } });
+  /** Closes the desktop panel and puts focus back on the day it showed. */
+  const closePanel = () => {
+    if (!selected) return;
+    const date = selected;
+    select(undefined);
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>(`button[data-date="${date}"]`)?.focus(),
+    );
+  };
 
   // Bumped by the e shortcut to move focus to the shown day's exercise stickers; a request
   // belongs to the day it was made on, so it never carries over to another day.
@@ -52,7 +61,13 @@ export function CalendarPage() {
     "[": () => goMonth(-1),
     "]": () => goMonth(1),
     t: goToday,
-    e: () => panelDate && setExerciseFocus((f) => ({ date: panelDate, n: (f?.n ?? 0) + 1 })),
+    // With no day open, e opens today.
+    e: () => {
+      const date = selected ?? today;
+      if (!selected) goToday();
+      setExerciseFocus((f) => ({ date, n: (f?.n ?? 0) + 1 }));
+    },
+    Escape: closePanel,
   });
 
   // Horizontal swipes on the grid change month on touch screens.
@@ -142,27 +157,26 @@ export function CalendarPage() {
         {isDesktop && (
           <p className="text-xs text-muted-foreground">
             Shortcuts: arrow keys move between days, <kbd>[</kbd> <kbd>]</kbd> change month,{" "}
-            <kbd>t</kbd> today, <kbd>e</kbd> log exercise.
+            <kbd>t</kbd> today, <kbd>e</kbd> log exercise, <kbd>Esc</kbd> close the day.
           </p>
         )}
       </main>
 
       {isDesktop ? (
-        <aside
-          className="w-full shrink-0 border-l border-violet-100 bg-white/70 backdrop-blur-sm lg:w-96"
-          aria-label="Day details"
-        >
-          {panelDate ? (
+        selected && (
+          <aside
+            className="w-full shrink-0 border-l border-violet-100 bg-white/70 backdrop-blur-sm lg:w-96"
+            aria-label="Day details"
+          >
             <DayPanel
-              key={panelDate}
-              date={panelDate}
-              locked={!isEditableDate(panelDate, today)}
-              focusExercise={exerciseFocus?.date === panelDate ? exerciseFocus.n : undefined}
+              key={selected}
+              date={selected}
+              locked={!isEditableDate(selected, today)}
+              focusExercise={exerciseFocus?.date === selected ? exerciseFocus.n : undefined}
+              onClose={closePanel}
             />
-          ) : (
-            <p className="p-4 text-sm text-muted-foreground">Select a day.</p>
-          )}
-        </aside>
+          </aside>
+        )
       ) : (
         <>
           <Button

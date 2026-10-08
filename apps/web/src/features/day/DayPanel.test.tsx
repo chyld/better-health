@@ -8,7 +8,7 @@ import { setDesktop } from "../../../tests/viewport";
 const patches = () => fake.state.requests.filter((r) => r.method === "PATCH");
 const cell = (date: string) => document.querySelector(`button[data-date="${date}"]`) as HTMLElement;
 
-async function openDesktop(path = "/") {
+async function openDesktop(path = "/calendar/2026-10?day=2026-10-02") {
   setDesktop(true);
   const r = renderApp(path);
   const panel = await screen.findByRole("complementary", { name: "Day details" });

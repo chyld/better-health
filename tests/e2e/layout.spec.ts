@@ -3,11 +3,18 @@ import { cell, expect, isDesktop, login, openDay, test } from "./fixtures";
 test("phones and tablets open days in a sheet; desktop uses a side panel", async ({ page }) => {
   await login(page);
   if (isDesktop(page)) {
+    // The whole calendar until a day is opened.
     const panel = page.getByRole("complementary", { name: "Day details" });
-    await expect(panel.getByRole("heading", { name: "Friday, October 2" })).toBeVisible();
+    await expect(panel).toHaveCount(0);
     await openDay(page, "2026-10-05");
     await expect(panel.getByRole("heading", { name: "Monday, October 5" })).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    await panel.getByRole("button", { name: "Close day details" }).click();
+    await expect(panel).toHaveCount(0);
+    await expect(cell(page, "2026-10-05")).toBeFocused();
+    await openDay(page, "2026-10-05");
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
   } else {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     const sheet = await openDay(page, "2026-10-05");
@@ -35,7 +42,6 @@ test("desktop keyboard: arrows move days, [ ] change month, e logs exercise", as
     headers: { origin: new URL(page.url()).origin },
   });
   await page.reload();
-  await expect(page.getByRole("button", { name: "Log Walking" })).toBeVisible();
   await cell(page, "2026-10-02").focus();
   await page.keyboard.press("ArrowRight");
   await expect(cell(page, "2026-10-03")).toBeFocused();

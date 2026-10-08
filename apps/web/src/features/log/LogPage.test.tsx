@@ -130,7 +130,7 @@ describe("log page", () => {
 
   test("something logged in the day panel shows up", async () => {
     setDesktop(true);
-    const { user } = renderApp("/");
+    const { user } = renderApp("/calendar/2026-10?day=2026-10-02");
     const panel = await screen.findByRole("complementary", { name: "Day details" });
     await user.type(await within(panel).findByLabelText("Notes"), "new note");
     await user.tab();

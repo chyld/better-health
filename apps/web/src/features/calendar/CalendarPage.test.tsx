@@ -235,27 +235,47 @@ describe("phone layout", () => {
 describe("desktop layout", () => {
   beforeEach(() => setDesktop(true));
 
-  test("shows today in a side panel without opening a dialog", async () => {
-    renderApp("/");
-    await screen.findByRole("grid");
-    const panel = screen.getByRole("complementary", { name: "Day details" });
-    expect(within(panel).getByRole("heading", { name: "Friday, October 2" })).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  test("clicking a day switches the panel", async () => {
+  test("shows the whole calendar, with no panel, until a day is clicked", async () => {
     const { user } = renderApp("/");
     await screen.findByRole("grid");
+    expect(screen.queryByRole("complementary", { name: "Day details" })).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+
     await user.click(cell("2026-10-20"));
     const panel = screen.getByRole("complementary", { name: "Day details" });
     expect(
       await within(panel).findByRole("heading", { name: "Tuesday, October 20" }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  test("another month with nothing selected asks to pick a day", async () => {
-    renderApp("/calendar/2026-08");
+  test("clicking another day switches the panel", async () => {
+    const { user } = renderApp("/calendar/2026-10?day=2026-10-02");
+    const panel = await screen.findByRole("complementary", { name: "Day details" });
+    expect(within(panel).getByRole("heading", { name: "Friday, October 2" })).toBeInTheDocument();
     await screen.findByRole("grid");
-    expect(screen.getByText("Select a day.")).toBeInTheDocument();
+    await user.click(cell("2026-10-20"));
+    expect(
+      await within(panel).findByRole("heading", { name: "Tuesday, October 20" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the close button hides the panel and returns focus to the day", async () => {
+    const { user, history } = renderApp("/");
+    await screen.findByRole("grid");
+    await user.click(cell("2026-10-20"));
+    const panel = screen.getByRole("complementary", { name: "Day details" });
+    await user.click(within(panel).getByRole("button", { name: "Close day details" }));
+    expect(screen.queryByRole("complementary", { name: "Day details" })).toBeNull();
+    expect(history.location.search).not.toContain("day=");
+    await waitFor(() => expect(cell("2026-10-20")).toHaveFocus());
+  });
+
+  test("Escape closes the panel", async () => {
+    const { user } = renderApp("/calendar/2026-10?day=2026-10-02");
+    await screen.findByRole("complementary", { name: "Day details" });
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("complementary", { name: "Day details" })).toBeNull();
+    await waitFor(() => expect(cell("2026-10-02")).toHaveFocus());
   });
 });

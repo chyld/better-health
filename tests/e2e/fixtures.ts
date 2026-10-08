@@ -30,8 +30,13 @@ export async function openDay(page: Page, date: string): Promise<Locator> {
   return container;
 }
 
+/** Closes the open day: the side panel's close button on desktop, the sheet elsewhere. */
 export async function closeDay(page: Page) {
-  if (!isDesktop(page)) {
+  if (isDesktop(page)) {
+    const panel = page.getByRole("complementary", { name: "Day details" });
+    await panel.getByRole("button", { name: "Close day details" }).click();
+    await expect(panel).toBeHidden();
+  } else {
     await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
     await expect(page.getByRole("dialog")).toBeHidden();
   }
