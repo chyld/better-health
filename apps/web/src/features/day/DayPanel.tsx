@@ -70,12 +70,13 @@ export function DayPanel({
                 onSave={(caloriesIn) => save({ caloriesIn })}
               />
               <NumberField
-                label="Calories out"
+                label="Active calories"
                 icon={<Flame />}
                 tone={metricTone.out}
-                value={day.caloriesOut}
+                value={day.caloriesActive}
                 schema={caloriesSchema}
-                onSave={(caloriesOut) => save({ caloriesOut })}
+                hint={baseHint(day.caloriesBase, day.caloriesOut)}
+                onSave={(caloriesActive) => save({ caloriesActive })}
               />
             </div>
             <div
@@ -140,6 +141,13 @@ export function DayPanel({
       )}
     </section>
   );
+}
+
+/** "+ 2,000 base = 3,000 out": how the day's burn adds up, once there is a base. */
+function baseHint(base: number, out: number | null) {
+  if (base === 0) return undefined;
+  const plus = `+ ${formatNumber(base)} base`;
+  return out === null ? plus : `${plus} = ${formatNumber(out)} out`;
 }
 
 function SaveStatus({

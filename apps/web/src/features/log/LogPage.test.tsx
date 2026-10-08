@@ -32,7 +32,7 @@ describe("log page", () => {
     const yoga = fake.addType("Yoga", { category: "stretch" });
     fake.setDay("2026-10-02", {
       caloriesIn: 1850,
-      caloriesOut: 2600,
+      caloriesActive: 2600,
       weightLbs: 182.4,
       steps: 12345,
       distanceMiles: 5.25,
@@ -66,6 +66,9 @@ describe("log page", () => {
       expect(dt.nextElementSibling?.textContent).toBe(value);
     }
 
+    // No base burn set: "Out" is what was entered, with no breakdown.
+    expect(within(today as HTMLElement).queryByText("Base", { selector: "dt" })).toBeNull();
+
     const exercises = within(yesterday as HTMLElement).getByRole("list", { name: "Exercises" });
     expect(
       within(exercises)
@@ -75,6 +78,37 @@ describe("log page", () => {
 
     const note = within(older as HTMLElement).getByText(/line one/);
     expect(note.textContent).toBe("line one\nline two");
+  });
+
+  test("breaks the burn into active and base once a base is set", async () => {
+    fake.setBaseCalories(2000, "2026-10-01");
+    fake.setDay("2026-10-02", { caloriesIn: 2500, caloriesActive: 1000 });
+    fake.setDay("2026-10-01", { caloriesIn: 2400 });
+    fake.setDay("2026-09-30", { caloriesIn: 1800, caloriesActive: 2400 });
+    renderApp("/log");
+
+    const list = await screen.findByRole("list", { name: "Log, newest first" });
+    const terms = (article: HTMLElement) =>
+      within(article)
+        .getAllByRole("definition")
+        .map((dd) => `${dd.previousElementSibling?.textContent} ${dd.textContent}`);
+    const [today, yesterday, before] = within(list).getAllByRole("article") as HTMLElement[];
+    expect(terms(today as HTMLElement)).toEqual([
+      "In 2,500 cal",
+      "Active 1,000 cal",
+      "Base 2,000 cal",
+      "Out 3,000 cal",
+      "Net −500 cal",
+    ]);
+    expect(terms(yesterday as HTMLElement)).toEqual([
+      "In 2,400 cal",
+      "Active 0 cal",
+      "Base 2,000 cal",
+      "Out 2,000 cal",
+      "Net +400 cal",
+    ]);
+    // Before the base started, the day reads as it always did.
+    expect(terms(before as HTMLElement)).toEqual(["In 1,800 cal", "Out 2,400 cal", "Net −600 cal"]);
   });
 
   test("is read only", async () => {

@@ -5,6 +5,11 @@ import type { HighlightColor, HighlightMetric, HighlightOperator } from "./highl
 export interface DaySummary {
   date: string;
   caloriesIn: number | null;
+  /** What the user entered as burned by activity. */
+  caloriesActive: number | null;
+  /** The base burn in effect on the date, whether or not it counts toward the day. */
+  caloriesBase: number;
+  /** Total burned: active plus base, once calories in or active calories are entered. */
   caloriesOut: number | null;
   net: number | null;
   weightLbs: number | null;
@@ -53,6 +58,11 @@ export interface Measurement {
 export interface DayDetail {
   date: string;
   caloriesIn: number | null;
+  /** What the user entered as burned by activity. */
+  caloriesActive: number | null;
+  /** The base burn in effect on the date, whether or not it counts toward the day. */
+  caloriesBase: number;
+  /** Total burned: active plus base, once calories in or active calories are entered. */
   caloriesOut: number | null;
   net: number | null;
   weightLbs: number | null;
@@ -66,6 +76,11 @@ export interface DayDetail {
 export interface HistoryDay {
   date: string;
   caloriesIn: number | null;
+  /** What the user entered as burned by activity. */
+  caloriesActive: number | null;
+  /** The base burn in effect on the date, whether or not it counts toward the day. */
+  caloriesBase: number;
+  /** Total burned: active plus base, once calories in or active calories are entered. */
   caloriesOut: number | null;
   net: number | null;
   weightLbs: number | null;

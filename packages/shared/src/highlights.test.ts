@@ -10,6 +10,8 @@ import type { DaySummary, HighlightRule } from "./types";
 const day: DaySummary = {
   date: "2026-10-02",
   caloriesIn: 1850,
+  caloriesActive: 600,
+  caloriesBase: 2000,
   caloriesOut: 2600,
   net: -750,
   weightLbs: 182.4,
@@ -27,6 +29,8 @@ const day: DaySummary = {
 const empty: DaySummary = {
   date: "2026-10-03",
   caloriesIn: null,
+  caloriesActive: null,
+  caloriesBase: 0,
   caloriesOut: null,
   net: null,
   weightLbs: null,

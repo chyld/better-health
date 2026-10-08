@@ -1,21 +1,41 @@
 import {
+  type BaseCaloriesChange,
+  baseCaloriesOn,
   compareExerciseTotals,
   type DayDetail,
   type DayNote,
   type DayPatch,
   type DaySummary,
   datesInMonth,
+  dayCalories,
   type ExerciseEntry,
   type HistoryDay,
   type Measurement,
-  netCalories,
 } from "@better-health/shared";
 import { and, asc, between, count, desc, eq, isNotNull, or, type SQL, sum } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { dailyLogs, exerciseEntries, exerciseMeasurements, exerciseTypes } from "../db/schema";
 import { type Clock, systemClock } from "../lib/clock";
+import { listBaseCalories } from "./base-calories";
 
 type LogRow = typeof dailyLogs.$inferSelect;
+
+/** A day's calories as the API reports them: what was entered, the base, the total and net. */
+function calories(
+  log: Pick<LogRow, "caloriesIn" | "caloriesActive"> | undefined,
+  date: string,
+  changes: BaseCaloriesChange[],
+) {
+  const caloriesIn = log?.caloriesIn ?? null;
+  const caloriesActive = log?.caloriesActive ?? null;
+  const caloriesBase = baseCaloriesOn(changes, date);
+  return {
+    caloriesIn,
+    caloriesActive,
+    caloriesBase,
+    ...dayCalories(caloriesIn, caloriesActive, caloriesBase),
+  };
+}
 
 export function getMonth(db: Db, userId: number, month: string): DaySummary[] {
   const dates = datesInMonth(month);
@@ -70,16 +90,13 @@ export function getMonth(db: Db, userId: number, month: string): DaySummary[] {
     addTotal(date, total);
   }
   for (const list of totals.values()) list.sort(compareExerciseTotals);
+  const changes = listBaseCalories(db, userId);
 
   return dates.map((date) => {
     const log = logs.get(date);
-    const caloriesIn = log?.caloriesIn ?? null;
-    const caloriesOut = log?.caloriesOut ?? null;
     return {
       date,
-      caloriesIn,
-      caloriesOut,
-      net: netCalories(caloriesIn, caloriesOut),
+      ...calories(log, date, changes),
       weightLbs: log?.weightLbs ?? null,
       steps: log?.steps ?? null,
       distanceMiles: log?.distanceMiles ?? null,
@@ -145,13 +162,9 @@ function findLog(db: Db, userId: number, date: string): LogRow | undefined {
 
 export function getDay(db: Db, userId: number, date: string): DayDetail {
   const log = findLog(db, userId, date);
-  const caloriesIn = log?.caloriesIn ?? null;
-  const caloriesOut = log?.caloriesOut ?? null;
   return {
     date,
-    caloriesIn,
-    caloriesOut,
-    net: netCalories(caloriesIn, caloriesOut),
+    ...calories(log, date, listBaseCalories(db, userId)),
     weightLbs: log?.weightLbs ?? null,
     steps: log?.steps ?? null,
     distanceMiles: log?.distanceMiles ?? null,
@@ -171,14 +184,14 @@ export function patchDay(
   const current = findLog(db, userId, date);
   const next = {
     caloriesIn: current?.caloriesIn ?? null,
-    caloriesOut: current?.caloriesOut ?? null,
+    caloriesActive: current?.caloriesActive ?? null,
     weightLbs: current?.weightLbs ?? null,
     steps: current?.steps ?? null,
     distanceMiles: current?.distanceMiles ?? null,
     note: current?.note ?? null,
   };
   if (patch.caloriesIn !== undefined) next.caloriesIn = patch.caloriesIn;
-  if (patch.caloriesOut !== undefined) next.caloriesOut = patch.caloriesOut;
+  if (patch.caloriesActive !== undefined) next.caloriesActive = patch.caloriesActive;
   if (patch.weightLbs !== undefined) next.weightLbs = patch.weightLbs;
   if (patch.steps !== undefined) next.steps = patch.steps;
   if (patch.distanceMiles !== undefined) next.distanceMiles = patch.distanceMiles;
@@ -213,11 +226,12 @@ export function listNotes(db: Db, userId: number): DayNote[] {
 
 /** Every day with calories in or out, weight, steps or distance logged, newest first. */
 export function listHistory(db: Db, userId: number): HistoryDay[] {
+  const changes = listBaseCalories(db, userId);
   return db
     .select({
       date: dailyLogs.date,
       caloriesIn: dailyLogs.caloriesIn,
-      caloriesOut: dailyLogs.caloriesOut,
+      caloriesActive: dailyLogs.caloriesActive,
       weightLbs: dailyLogs.weightLbs,
       steps: dailyLogs.steps,
       distanceMiles: dailyLogs.distanceMiles,
@@ -228,7 +242,7 @@ export function listHistory(db: Db, userId: number): HistoryDay[] {
         eq(dailyLogs.userId, userId),
         or(
           isNotNull(dailyLogs.caloriesIn),
-          isNotNull(dailyLogs.caloriesOut),
+          isNotNull(dailyLogs.caloriesActive),
           isNotNull(dailyLogs.weightLbs),
           isNotNull(dailyLogs.steps),
           isNotNull(dailyLogs.distanceMiles),
@@ -237,7 +251,11 @@ export function listHistory(db: Db, userId: number): HistoryDay[] {
     )
     .orderBy(desc(dailyLogs.date))
     .all()
-    .map((r) => ({ ...r, net: netCalories(r.caloriesIn, r.caloriesOut) }));
+    .map(({ date, caloriesIn, caloriesActive, ...rest }) => ({
+      date,
+      ...calories({ caloriesIn, caloriesActive }, date, changes),
+      ...rest,
+    }));
 }
 
 /** Every day with anything logged (values, a note or exercises), newest first. */
@@ -257,16 +275,14 @@ export function listLog(db: Db, userId: number): DayDetail[] {
     entries.set(date, list);
   }
 
+  const changes = listBaseCalories(db, userId);
+
   const dates = [...new Set([...logs.keys(), ...entries.keys()])].sort().reverse();
   return dates.map((date) => {
     const log = logs.get(date);
-    const caloriesIn = log?.caloriesIn ?? null;
-    const caloriesOut = log?.caloriesOut ?? null;
     return {
       date,
-      caloriesIn,
-      caloriesOut,
-      net: netCalories(caloriesIn, caloriesOut),
+      ...calories(log, date, changes),
       weightLbs: log?.weightLbs ?? null,
       steps: log?.steps ?? null,
       distanceMiles: log?.distanceMiles ?? null,

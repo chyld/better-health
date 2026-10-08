@@ -1,4 +1,5 @@
 import {
+  baseCaloriesSetSchema,
   dayPatchSchema,
   exerciseEntryCreateSchema,
   exerciseEntryPatchSchema,
@@ -16,6 +17,7 @@ import { z } from "zod";
 import type { AppEnv, Deps } from "../context";
 import { validate } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
+import { listBaseCalories, setBaseCalories } from "../services/base-calories";
 import { getDay, getMonth, listHistory, listLog, listNotes, patchDay } from "../services/days";
 import {
   createExerciseType,
@@ -51,6 +53,7 @@ export function dataRoutes(deps: Deps) {
     .use("/log", auth)
     .use("/highlights", auth)
     .use("/highlights/*", auth)
+    .use("/base-calories", auth)
     .get("/notes", (c) => c.json(listNotes(db, c.get("user").id), 200))
     .get("/history", (c) => c.json(listHistory(db, c.get("user").id), 200))
     .get("/log", (c) => c.json(listLog(db, c.get("user").id), 200))
@@ -87,6 +90,10 @@ export function dataRoutes(deps: Deps) {
     .delete("/days/:date/exercises/:id", validate("param", entryParams), (c) => {
       const { date, id } = c.req.valid("param");
       return c.json(deleteExercise(db, c.get("user").id, date, id), 200);
+    })
+    .get("/base-calories", (c) => c.json(listBaseCalories(db, c.get("user").id), 200))
+    .put("/base-calories", validate("json", baseCaloriesSetSchema), (c) => {
+      return c.json(setBaseCalories(db, c.get("user").id, c.req.valid("json")), 200);
     })
     .get("/highlights", (c) => c.json(listHighlightRules(db, c.get("user").id), 200))
     .post("/highlights", validate("json", highlightRuleCreateSchema), (c) => {

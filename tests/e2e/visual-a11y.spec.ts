@@ -23,7 +23,7 @@ test("calendar with data: accessible and matches the snapshot", async ({ page })
   ] as const) {
     const day = await openDay(page, date);
     await fillAndSave(day, "Calories in", values.in);
-    await fillAndSave(day, "Calories out", values.out);
+    await fillAndSave(day, "Active calories", values.out);
     await fillAndSave(day, "Weight", values.weight);
     await fillAndSave(day, "Steps", values.steps);
     await closeDay(page);

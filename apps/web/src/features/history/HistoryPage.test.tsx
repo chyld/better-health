@@ -6,8 +6,8 @@ import { renderApp } from "../../../tests/render";
 
 beforeEach(() => {
   fake.signIn();
-  fake.setDay("2026-09-15", { caloriesIn: 1800, caloriesOut: 2400, weightLbs: 184.2 });
-  fake.setDay("2026-10-02", { caloriesIn: 2500, caloriesOut: 2100 });
+  fake.setDay("2026-09-15", { caloriesIn: 1800, caloriesActive: 2400, weightLbs: 184.2 });
+  fake.setDay("2026-10-02", { caloriesIn: 2500, caloriesActive: 2100 });
   fake.setDay("2026-10-01", { weightLbs: 182.4, note: "x" });
   fake.setDay("2026-09-30", { note: "only a note" });
 });

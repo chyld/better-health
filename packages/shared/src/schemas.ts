@@ -59,7 +59,8 @@ export const distanceSchema = z
 export const dayPatchSchema = z
   .strictObject({
     caloriesIn: caloriesSchema.nullable().optional(),
-    caloriesOut: caloriesSchema.nullable().optional(),
+    /** Burned by activity; the base burn is added on top. */
+    caloriesActive: caloriesSchema.nullable().optional(),
     weightLbs: weightSchema.nullable().optional(),
     steps: stepsSchema.nullable().optional(),
     distanceMiles: distanceSchema.nullable().optional(),
@@ -67,6 +68,22 @@ export const dayPatchSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, "Nothing to update");
 export type DayPatch = z.infer<typeof dayPatchSchema>;
+
+export const BASE_CALORIES_MAX = 10_000;
+
+/** Calories the body burns in a day at rest. */
+export const baseCaloriesSchema = z
+  .number()
+  .int("Calories must be a whole number")
+  .min(0, "Calories cannot be negative")
+  .max(BASE_CALORIES_MAX, `Calories must be at most ${BASE_CALORIES_MAX}`);
+
+/** A new base burn from `startsOn` on; earlier days keep the base they had. */
+export const baseCaloriesSetSchema = z.strictObject({
+  calories: baseCaloriesSchema,
+  startsOn: isoDateSchema,
+});
+export type BaseCaloriesSet = z.infer<typeof baseCaloriesSetSchema>;
 
 const idSchema = z.number().int().positive();
 

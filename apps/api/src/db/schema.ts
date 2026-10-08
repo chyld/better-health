@@ -44,7 +44,9 @@ export const dailyLogs = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     caloriesIn: integer("calories_in"),
-    caloriesOut: integer("calories_out"),
+    // Burned by activity, as entered; the base burn is added when the day is read. The column
+    // keeps its old name: before base burns existed, what was entered was the whole burn.
+    caloriesActive: integer("calories_out"),
     weightLbs: real("weight_lbs"),
     steps: integer("steps"),
     distanceMiles: real("distance_miles"),
@@ -121,4 +123,17 @@ export const highlightRules = sqliteTable(
     sortOrder: integer("sort_order").notNull(),
   },
   (t) => [index("highlight_rules_user_idx").on(t.userId)],
+);
+
+/** Each user's base burn: `calories` a day from `startsOn` until their next change. */
+export const baseCalories = sqliteTable(
+  "base_calories",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    startsOn: text("starts_on").notNull(),
+    calories: integer("calories").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.startsOn] })],
 );

@@ -49,7 +49,7 @@ describe("daily_logs", () => {
     const user = makeUser(db);
     const day = makeDay(db, user.id);
     expect(day.caloriesIn).toBeNull();
-    expect(day.caloriesOut).toBeNull();
+    expect(day.caloriesActive).toBeNull();
     expect(day.weightLbs).toBeNull();
     expect(day.note).toBeNull();
   });

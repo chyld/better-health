@@ -4,7 +4,7 @@ test("logs calories and weight; the cell shows them and they persist", async ({ 
   await login(page);
   const day = await openDay(page, "2026-10-01");
   await fillAndSave(day, "Calories in", "1850");
-  await fillAndSave(day, "Calories out", "2600");
+  await fillAndSave(day, "Active calories", "2600");
   await fillAndSave(day, "Weight", "182.4");
   await expect(day.getByRole("status", { name: "Net" })).toHaveText("−750");
   await closeDay(page);

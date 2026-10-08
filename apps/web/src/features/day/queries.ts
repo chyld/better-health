@@ -6,7 +6,7 @@ import type {
   ExerciseEntryPatch,
   MonthResponse,
 } from "@better-health/shared";
-import { compareExerciseTotals, netCalories } from "@better-health/shared";
+import { compareExerciseTotals, dayCalories } from "@better-health/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
 
@@ -20,6 +20,8 @@ function summarize(day: DayDetail): DaySummary {
   return {
     date: day.date,
     caloriesIn: day.caloriesIn,
+    caloriesActive: day.caloriesActive,
+    caloriesBase: day.caloriesBase,
     caloriesOut: day.caloriesOut,
     net: day.net,
     weightLbs: day.weightLbs,
@@ -76,8 +78,10 @@ export function useUpdateDay(date: string) {
       const previous = queryClient.getQueryData(dayQuery(date).queryKey);
       if (previous) {
         const next = { ...previous, ...patch } as DayDetail;
-        next.net = netCalories(next.caloriesIn, next.caloriesOut);
-        writeDay(next);
+        writeDay({
+          ...next,
+          ...dayCalories(next.caloriesIn, next.caloriesActive, next.caloriesBase),
+        });
       }
       return { previous };
     },

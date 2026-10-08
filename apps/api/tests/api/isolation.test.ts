@@ -21,7 +21,7 @@ beforeEach(async () => {
   await t.json(
     `/api/days/${DATE}`,
     "PATCH",
-    { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182.4, note: "private" },
+    { caloriesIn: 1850, caloriesActive: 2600, weightLbs: 182.4, note: "private" },
     alice,
   );
   const day = (await (

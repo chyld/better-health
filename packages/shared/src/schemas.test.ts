@@ -33,6 +33,7 @@ describe("passwordSchema", () => {
 });
 
 import {
+  baseCaloriesSetSchema,
   caloriesSchema,
   dayPatchSchema,
   distanceSchema,
@@ -98,7 +99,8 @@ describe("dayPatchSchema", () => {
     expect(dayPatchSchema.safeParse({ weightLbs: null, note: "hi" }).success).toBe(true);
     expect(dayPatchSchema.safeParse({ steps: 9000, distanceMiles: null }).success).toBe(true);
     expect(
-      dayPatchSchema.safeParse({ caloriesIn: 1, caloriesOut: 2, weightLbs: 150, note: "" }).success,
+      dayPatchSchema.safeParse({ caloriesIn: 1, caloriesActive: 2, weightLbs: 150, note: "" })
+        .success,
     ).toBe(true);
   });
   test("rejects an empty patch and unknown fields", () => {
@@ -107,6 +109,26 @@ describe("dayPatchSchema", () => {
   });
   test("rejects a note over 10,000 characters", () => {
     expect(dayPatchSchema.safeParse({ note: "x".repeat(10_001) }).success).toBe(false);
+  });
+});
+
+describe("baseCaloriesSetSchema", () => {
+  test("takes whole calories from 0 to 10,000 and a start date", () => {
+    expect(
+      baseCaloriesSetSchema.safeParse({ calories: 2000, startsOn: "2026-10-08" }).success,
+    ).toBe(true);
+    expect(baseCaloriesSetSchema.safeParse({ calories: 0, startsOn: "2026-10-08" }).success).toBe(
+      true,
+    );
+  });
+  test.each([
+    { calories: -1, startsOn: "2026-10-08" },
+    { calories: 10_001, startsOn: "2026-10-08" },
+    { calories: 1999.5, startsOn: "2026-10-08" },
+    { calories: 2000, startsOn: "2026-13-01" },
+    { calories: 2000 },
+  ])("rejects %p", (body) => {
+    expect(baseCaloriesSetSchema.safeParse(body).success).toBe(false);
   });
 });
 

@@ -20,6 +20,8 @@ describe("GET /api/days/:date", () => {
     expect(await s.day("2026-10-02")).toEqual({
       date: "2026-10-02",
       caloriesIn: null,
+      caloriesActive: null,
+      caloriesBase: 0,
       caloriesOut: null,
       net: null,
       weightLbs: null,
@@ -48,7 +50,7 @@ describe("GET /api/days/:date", () => {
 describe("PATCH /api/days/:date", () => {
   test("sets values and computes net", async () => {
     const s = await setup();
-    const res = await s.patch("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600 });
+    const res = await s.patch("2026-10-02", { caloriesIn: 1850, caloriesActive: 2600 });
     expect(res.status).toBe(200);
     const body = (await res.json()) as DayDetail;
     expect(body).toMatchObject({ caloriesIn: 1850, caloriesOut: 2600, net: -750 });
@@ -58,13 +60,13 @@ describe("PATCH /api/days/:date", () => {
     const s = await setup();
     await s.patch("2026-10-02", { caloriesIn: 1850 });
     expect((await s.day("2026-10-02")).net).toBeNull();
-    await s.patch("2026-10-02", { caloriesOut: 1000 });
+    await s.patch("2026-10-02", { caloriesActive: 1000 });
     expect((await s.day("2026-10-02")).net).toBe(850);
   });
 
   test("updates only the fields sent", async () => {
     const s = await setup();
-    await s.patch("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182.4 });
+    await s.patch("2026-10-02", { caloriesIn: 1850, caloriesActive: 2600, weightLbs: 182.4 });
     await s.patch("2026-10-02", { note: "felt good" });
     expect(await s.day("2026-10-02")).toMatchObject({
       caloriesIn: 1850,
@@ -126,7 +128,7 @@ describe("PATCH /api/days/:date", () => {
 
   test("zero is a real value", async () => {
     const s = await setup();
-    await s.patch("2026-10-02", { caloriesIn: 0, caloriesOut: 0 });
+    await s.patch("2026-10-02", { caloriesIn: 0, caloriesActive: 0 });
     expect(await s.day("2026-10-02")).toMatchObject({ caloriesIn: 0, caloriesOut: 0, net: 0 });
   });
 
@@ -169,6 +171,8 @@ describe("GET /api/months/:month", () => {
     expect(body.days[0]).toEqual({
       date: "2026-02-01",
       caloriesIn: null,
+      caloriesActive: null,
+      caloriesBase: 0,
       caloriesOut: null,
       net: null,
       weightLbs: null,
@@ -184,7 +188,7 @@ describe("GET /api/months/:month", () => {
     const s = await setup();
     await s.patch("2026-10-02", {
       caloriesIn: 1850,
-      caloriesOut: 2600,
+      caloriesActive: 2600,
       weightLbs: 182.4,
       steps: 12_345,
       distanceMiles: 5.25,
@@ -212,6 +216,8 @@ describe("GET /api/months/:month", () => {
     expect(day).toEqual({
       date: "2026-10-02",
       caloriesIn: 1850,
+      caloriesActive: 2600,
+      caloriesBase: 0,
       caloriesOut: 2600,
       net: -750,
       weightLbs: 182.4,

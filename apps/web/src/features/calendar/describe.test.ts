@@ -5,6 +5,8 @@ import { describeDay, longDate } from "./describe";
 const empty: DaySummary = {
   date: "2026-10-02",
   caloriesIn: null,
+  caloriesActive: null,
+  caloriesBase: 0,
   caloriesOut: null,
   net: null,
   weightLbs: null,

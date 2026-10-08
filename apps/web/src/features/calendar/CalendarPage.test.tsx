@@ -42,7 +42,12 @@ describe("month view", () => {
   });
 
   test("each cell shows net, number of exercises and weight", async () => {
-    fake.setDay("2026-10-02", { caloriesIn: 1850, caloriesOut: 2600, weightLbs: 182.4, note: "x" });
+    fake.setDay("2026-10-02", {
+      caloriesIn: 1850,
+      caloriesActive: 2600,
+      weightLbs: 182.4,
+      note: "x",
+    });
     const yoga = fake.addType("Yoga");
     fake.addEntry("2026-10-02", yoga.id, [{ unit: "minutes", amount: 60 }]);
     fake.addEntry("2026-10-02", yoga.id);
@@ -65,7 +70,7 @@ describe("month view", () => {
   });
 
   test("large nets are shortened on small screens", async () => {
-    fake.setDay("2026-10-01", { caloriesIn: 3500, caloriesOut: 2000 });
+    fake.setDay("2026-10-01", { caloriesIn: 3500, caloriesActive: 2000 });
     renderApp("/");
     await screen.findByRole("grid");
     const net = cell("2026-10-01").querySelector('[data-value="net"]');

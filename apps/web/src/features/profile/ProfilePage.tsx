@@ -1,4 +1,7 @@
 import {
+  baseCaloriesOn,
+  baseCaloriesSchema,
+  formatNumber,
   HIGHLIGHT_COLORS,
   HIGHLIGHT_OPERATORS,
   type HighlightColor,
@@ -13,6 +16,7 @@ import {
   ArrowLeft,
   ArrowUp,
   ChevronDown,
+  Flame,
   Paintbrush,
   Trash2,
   UserRound,
@@ -23,8 +27,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { exerciseTypesQuery } from "@/features/labels/queries";
 import { ApiError } from "@/lib/api";
-import { highlightTone } from "@/lib/tones";
+import { highlightTone, metricTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
+import { baseCaloriesQuery, useSetBaseCalories } from "./baseCalories";
 import {
   describeRule,
   highlightsQuery,
@@ -71,10 +76,136 @@ export function ProfilePage() {
         </div>
       </section>
 
+      <BaseCalories />
+
       <Highlights />
 
       <Versions />
     </main>
+  );
+}
+
+const LONG_DATE = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const longDate = (date: string) => LONG_DATE.format(new Date(`${date}T00:00:00Z`));
+
+function BaseCalories() {
+  const id = useId();
+  const today = profileRoute.useRouteContext().today();
+  const { data, isError, refetch } = useQuery(baseCaloriesQuery);
+  const set = useSetBaseCalories();
+  const current = data ? baseCaloriesOn(data, today) : 0;
+  // null until edited: the field shows the base in effect today.
+  const [draft, setDraft] = useState<string | null>(null);
+  const text = draft ?? (current ? String(current) : "");
+
+  const trimmed = text.trim();
+  const parsed = /^\d+$/.test(trimmed)
+    ? baseCaloriesSchema.safeParse(Number(trimmed))
+    : trimmed === ""
+      ? baseCaloriesSchema.safeParse(0)
+      : null;
+  const inputError = parsed
+    ? parsed.success
+      ? null
+      : (parsed.error.issues[0]?.message ?? "Invalid")
+    : "Enter a whole number, like 2000";
+  const value = parsed?.success ? parsed.data : null;
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (value === null) return;
+    set.mutate({ calories: value, startsOn: today }, { onSuccess: () => setDraft(null) });
+  }
+
+  return (
+    <section
+      aria-labelledby="base-heading"
+      className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-violet-100"
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={cn("grid size-10 shrink-0 place-items-center rounded-xl", metricTone.out.icon)}
+        >
+          <Flame className="size-5" aria-hidden="true" />
+        </span>
+        <div className="space-y-1">
+          <h2 id="base-heading" className="text-lg font-bold">
+            Base calorie burn
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            What your body burns in a day at rest, about 2,000 for many people. It is added to the
+            active calories you log, on every day with calories entered. A change counts from today
+            on; earlier days keep the base they had.
+          </p>
+        </div>
+      </div>
+
+      {isError && (
+        <div role="alert" className="flex items-center gap-2 text-sm">
+          Could not load your base burn.
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {data && (
+        <form onSubmit={submit} aria-label="Base calorie burn" className="space-y-2">
+          <Label htmlFor={`${id}-base`} className="text-xs">
+            Calories a day
+          </Label>
+          <div className="flex gap-2">
+            <div className="relative w-40">
+              <Input
+                id={`${id}-base`}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="e.g. 2000"
+                value={text}
+                aria-invalid={inputError ? true : undefined}
+                aria-describedby={inputError ? `${id}-base-error` : undefined}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  set.reset();
+                }}
+                className="pr-10 text-right tabular-nums"
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                cal
+              </span>
+            </div>
+            <Button type="submit" disabled={value === null || value === current || set.isPending}>
+              Save
+            </Button>
+          </div>
+          {inputError && (
+            <p id={`${id}-base-error`} className="text-xs text-destructive">
+              {inputError}
+            </p>
+          )}
+          {set.error && (
+            <p role="alert" className="text-sm text-destructive">
+              {errorText(set.error)}
+            </p>
+          )}
+          {data.length > 0 && (
+            <ul aria-label="Base burn changes" className="space-y-0.5 pt-1 text-sm">
+              {data.map((c) => (
+                <li key={c.startsOn}>
+                  <span className="font-semibold tabular-nums">{formatNumber(c.calories)} cal</span>
+                  <span className="text-muted-foreground"> from {longDate(c.startsOn)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </form>
+      )}
+    </section>
   );
 }
 

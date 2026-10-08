@@ -22,14 +22,14 @@ describe("calorie, weight, steps and distance fields", () => {
   test("show the saved values and net", async () => {
     fake.setDay("2026-10-02", {
       caloriesIn: 1850,
-      caloriesOut: 2600,
+      caloriesActive: 2600,
       weightLbs: 182,
       steps: 12345,
       distanceMiles: 5.5,
     });
     const { panel } = await openDesktop();
     expect(within(panel).getByLabelText("Calories in")).toHaveValue("1850");
-    expect(within(panel).getByLabelText("Calories out")).toHaveValue("2600");
+    expect(within(panel).getByLabelText("Active calories")).toHaveValue("2600");
     expect(within(panel).getByLabelText("Weight")).toHaveValue("182.0");
     expect(within(panel).getByLabelText("Steps")).toHaveValue("12345");
     expect(within(panel).getByLabelText("Distance")).toHaveValue("5.5");
@@ -57,16 +57,37 @@ describe("calorie, weight, steps and distance fields", () => {
 
   test("leaving the field saves immediately", async () => {
     const { user, panel } = await openDesktop();
-    await user.type(within(panel).getByLabelText("Calories out"), "2600");
+    await user.type(within(panel).getByLabelText("Active calories"), "2600");
     await user.tab();
     await waitFor(() => expect(patches()).toHaveLength(1), { timeout: 300 });
-    expect(patches()[0]?.body).toEqual({ caloriesOut: 2600 });
+    expect(patches()[0]?.body).toEqual({ caloriesActive: 2600 });
+  });
+
+  test("the base burn is added to active calories, with a line showing how", async () => {
+    fake.setBaseCalories(2000, "2026-10-01");
+    fake.setDay("2026-10-02", { caloriesIn: 2500 });
+    const { user, panel } = await openDesktop();
+    const active = within(panel).getByLabelText("Active calories");
+    expect(active).toHaveAccessibleDescription("+ 2,000 base = 2,000 out");
+    expect(within(panel).getByRole("status", { name: "Net" })).toHaveTextContent("+500");
+
+    await user.type(active, "1000");
+    await waitFor(() => expect(active).toHaveAccessibleDescription("+ 2,000 base = 3,000 out"));
+    expect(within(panel).getByRole("status", { name: "Net" })).toHaveTextContent("−500");
+    await user.tab();
+    await waitFor(() => expect(patches()[0]?.body).toEqual({ caloriesActive: 1000 }));
+    await waitFor(() => expect(cell("2026-10-02")).toHaveAccessibleName(/out 3000, net minus 500/));
+  });
+
+  test("without a base, active calories have no extra line", async () => {
+    const { panel } = await openDesktop();
+    expect(within(panel).getByLabelText("Active calories")).not.toHaveAccessibleDescription();
   });
 
   test("the calendar cell and net update as values are saved", async () => {
     const { user, panel } = await openDesktop();
     await user.type(within(panel).getByLabelText("Calories in"), "1850");
-    await user.type(within(panel).getByLabelText("Calories out"), "2600");
+    await user.type(within(panel).getByLabelText("Active calories"), "2600");
     await user.tab();
     await waitFor(() =>
       expect(within(panel).getByRole("status", { name: "Net" })).toHaveTextContent("−750"),
@@ -333,7 +354,7 @@ describe("exercise", () => {
   test("Enter in a number field moves to the next field", async () => {
     const { user, panel } = await openDesktop();
     await user.type(within(panel).getByLabelText("Calories in"), "1850{Enter}");
-    expect(within(panel).getByLabelText("Calories out")).toHaveFocus();
+    expect(within(panel).getByLabelText("Active calories")).toHaveFocus();
   });
 
   test("stickers list recently used labels first", async () => {

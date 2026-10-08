@@ -17,6 +17,48 @@ describe("profile page", () => {
     expect(await screen.findByText(/No highlights yet/)).toBeInTheDocument();
   });
 
+  test("sets the base burn from today on, keeping earlier changes", async () => {
+    fake.setBaseCalories(2100, "2026-09-01");
+    const { user } = renderApp("/profile");
+    const form = await screen.findByRole("form", { name: "Base calorie burn" });
+    const input = within(form).getByLabelText("Calories a day");
+    const save = within(form).getByRole("button", { name: "Save" });
+    await waitFor(() => expect(input).toHaveValue("2100"));
+    expect(save).toBeDisabled();
+
+    await user.clear(input);
+    await user.type(input, "2000");
+    await user.click(save);
+
+    await waitFor(() =>
+      expect(fake.state.baseCalories).toEqual([
+        { startsOn: "2026-10-02", calories: 2000 },
+        { startsOn: "2026-09-01", calories: 2100 },
+      ]),
+    );
+    const changes = within(form).getByRole("list", { name: "Base burn changes" });
+    expect(
+      within(changes)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual(["2,000 cal from October 2, 2026", "2,100 cal from September 1, 2026"]);
+    expect(input).toHaveValue("2000");
+    expect(save).toBeDisabled();
+  });
+
+  test("explains a base burn that is not a whole number", async () => {
+    const { user } = renderApp("/profile");
+    const form = await screen.findByRole("form", { name: "Base calorie burn" });
+    const input = within(form).getByLabelText("Calories a day");
+    expect(input).toHaveValue("");
+    await user.type(input, "2000.5");
+    expect(input).toHaveAccessibleDescription("Enter a whole number, like 2000");
+    expect(within(form).getByRole("button", { name: "Save" })).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, "20000");
+    expect(input).toHaveAccessibleDescription("Calories must be at most 10000");
+  });
+
   test("adds a rule from metric, condition, amount and color", async () => {
     const { user } = renderApp("/profile");
     const form = await screen.findByRole("form", { name: "Add highlight" });

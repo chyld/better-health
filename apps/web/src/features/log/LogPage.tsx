@@ -82,6 +82,8 @@ function emptyDay(date: string): DayDetail {
   return {
     date,
     caloriesIn: null,
+    caloriesActive: null,
+    caloriesBase: 0,
     caloriesOut: null,
     net: null,
     weightLbs: null,
@@ -94,11 +96,23 @@ function emptyDay(date: string): DayDetail {
 
 function LogDay({ day, isToday }: { day: DayDetail; isToday: boolean }) {
   const headingId = `log-${day.date}`;
+  const baseCounts = day.caloriesOut !== null && day.caloriesBase > 0;
   const metrics = [
     day.caloriesIn !== null && {
       label: "In",
       value: `${formatNumber(day.caloriesIn)} cal`,
       text: metricTone.in.text,
+    },
+    // Active and base only when a base counts toward the day; otherwise "Out" is all there is.
+    baseCounts && {
+      label: "Active",
+      value: `${formatNumber(day.caloriesActive ?? 0)} cal`,
+      text: metricTone.out.text,
+    },
+    baseCounts && {
+      label: "Base",
+      value: `${formatNumber(day.caloriesBase)} cal`,
+      text: metricTone.out.text,
     },
     day.caloriesOut !== null && {
       label: "Out",

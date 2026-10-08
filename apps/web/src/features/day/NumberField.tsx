@@ -24,6 +24,8 @@ interface Props {
   /** How a saved value reads in the field: 182.4 → "182.4" by default. */
   format?: (value: number) => string;
   suffix?: string;
+  /** A line under the field, such as how the value adds up. */
+  hint?: ReactNode;
   icon?: ReactNode;
   tone?: (typeof metricTone)[keyof typeof metricTone];
   onSave: (value: number | null) => void;
@@ -40,6 +42,7 @@ export function NumberField({
   decimal = false,
   format = String,
   suffix,
+  hint,
   icon,
   tone,
   onSave,
@@ -118,7 +121,7 @@ export function NumberField({
             }
           }}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
           onChange={(e) => change(e.target.value)}
           onFocus={() => {
             focused.current = true;
@@ -138,6 +141,14 @@ export function NumberField({
           </span>
         )}
       </div>
+      {hint && !error && (
+        <p
+          id={`${id}-hint`}
+          className="text-xs text-muted-foreground tabular-nums lg:col-span-2 lg:text-right"
+        >
+          {hint}
+        </p>
+      )}
       {error && (
         <p
           id={`${id}-error`}

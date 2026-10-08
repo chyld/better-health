@@ -20,7 +20,7 @@ test("lists every day with anything logged, newest first, with its exercises", a
       cookie,
     );
 
-  await patch("2026-09-15", { caloriesIn: 1800, caloriesOut: 2400, note: "older" });
+  await patch("2026-09-15", { caloriesIn: 1800, caloriesActive: 2400, note: "older" });
   await patch("2026-10-02", { weightLbs: 182.4 });
   await addExercise("2026-10-02", 3);
   await addExercise("2026-10-02");
@@ -40,6 +40,8 @@ test("lists every day with anything logged, newest first, with its exercises", a
   expect(days[2]).toEqual({
     date: "2026-09-15",
     caloriesIn: 1800,
+    caloriesActive: 2400,
+    caloriesBase: 0,
     caloriesOut: 2400,
     net: -600,
     weightLbs: null,

@@ -1,11 +1,13 @@
 import {
+  type BaseCaloriesChange,
+  baseCaloriesOn,
   type DayDetail,
   type DaySummary,
   datesInMonth,
+  dayCalories,
   type ExerciseType,
   type HighlightRule,
   type Measurement,
-  netCalories,
 } from "@better-health/shared";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
@@ -14,7 +16,7 @@ import { exerciseTotals } from "@/features/day/queries";
 /** A small in-memory stand-in for the API, enough for component tests. */
 interface DayRow {
   caloriesIn: number | null;
-  caloriesOut: number | null;
+  caloriesActive: number | null;
   weightLbs: number | null;
   steps: number | null;
   distanceMiles: number | null;
@@ -44,6 +46,8 @@ function createFake() {
     entries: [] as EntryRow[],
     types: [] as TypeRow[],
     highlights: [] as HighlightRule[],
+    /** Newest first, as the API lists them. */
+    baseCalories: [] as BaseCaloriesChange[],
     /** What /api/health reports; the same as the client unless a test changes it. */
     serverVersion: __APP_VERSION__,
     nextId: 1,
@@ -53,19 +57,28 @@ function createFake() {
 
   const emptyDay = (): DayRow => ({
     caloriesIn: null,
-    caloriesOut: null,
+    caloriesActive: null,
     weightLbs: null,
     steps: null,
     distanceMiles: null,
     note: null,
   });
 
+  /** What was entered, plus the base in effect on the date, the total burn and net. */
+  function calories(date: string, d: DayRow) {
+    const caloriesBase = baseCaloriesOn(state.baseCalories, date);
+    return {
+      caloriesBase,
+      ...dayCalories(d.caloriesIn, d.caloriesActive, caloriesBase),
+    };
+  }
+
   function dayDetail(date: string): DayDetail {
     const d = state.days.get(date) ?? emptyDay();
     return {
       date,
       ...d,
-      net: netCalories(d.caloriesIn, d.caloriesOut),
+      ...calories(date, d),
       exercises: state.entries
         .filter((e) => e.date === date)
         .map((e) => {
@@ -88,6 +101,8 @@ function createFake() {
     return {
       date,
       caloriesIn: d.caloriesIn,
+      caloriesActive: d.caloriesActive,
+      caloriesBase: d.caloriesBase,
       caloriesOut: d.caloriesOut,
       net: d.net,
       weightLbs: d.weightLbs,
@@ -184,7 +199,7 @@ function createFake() {
         .filter(
           ([, d]) =>
             d.caloriesIn !== null ||
-            d.caloriesOut !== null ||
+            d.caloriesActive !== null ||
             d.weightLbs !== null ||
             d.steps !== null ||
             d.distanceMiles !== null,
@@ -193,8 +208,8 @@ function createFake() {
         .map(([date, d]) => ({
           date,
           caloriesIn: d.caloriesIn,
-          caloriesOut: d.caloriesOut,
-          net: netCalories(d.caloriesIn, d.caloriesOut),
+          caloriesActive: d.caloriesActive,
+          ...calories(date, d),
           weightLbs: d.weightLbs,
           steps: d.steps,
           distanceMiles: d.distanceMiles,
@@ -220,7 +235,7 @@ function createFake() {
           .filter(
             (d) =>
               d.caloriesIn !== null ||
-              d.caloriesOut !== null ||
+              d.caloriesActive !== null ||
               d.weightLbs !== null ||
               d.steps !== null ||
               d.distanceMiles !== null ||
@@ -281,6 +296,19 @@ function createFake() {
       state.entries = state.entries.filter((e) => !(e.id === id && e.date === date));
       if (state.entries.length === before) return notFound();
       return HttpResponse.json(dayDetail(date));
+    }),
+    http.get("*/api/base-calories", () => {
+      if (!state.user) return unauthorized();
+      return HttpResponse.json(state.baseCalories);
+    }),
+    http.put("*/api/base-calories", async ({ request }) => {
+      if (!state.user) return unauthorized();
+      const body = (await record(request, "/api/base-calories")) as BaseCaloriesChange;
+      state.baseCalories = [
+        ...state.baseCalories.filter((c) => c.startsOn !== body.startsOn),
+        body,
+      ].sort((a, b) => b.startsOn.localeCompare(a.startsOn));
+      return HttpResponse.json(state.baseCalories);
     }),
     http.get("*/api/highlights", () => {
       if (!state.user) return unauthorized();
@@ -398,6 +426,12 @@ function createFake() {
       state.entries.push(row);
       return row;
     },
+    setBaseCalories(calories: number, startsOn: string) {
+      state.baseCalories = [
+        ...state.baseCalories.filter((c) => c.startsOn !== startsOn),
+        { startsOn, calories },
+      ].sort((a, b) => b.startsOn.localeCompare(a.startsOn));
+    },
     addHighlight(rule: Omit<HighlightRule, "id" | "sortOrder">) {
       const row = { id: state.nextId++, ...rule, sortOrder: state.highlights.length };
       state.highlights.push(row);
@@ -407,6 +441,7 @@ function createFake() {
       state.serverVersion = __APP_VERSION__;
       state.user = null;
       state.highlights = [];
+      state.baseCalories = [];
       state.days.clear();
       state.entries = [];
       state.types = [];
