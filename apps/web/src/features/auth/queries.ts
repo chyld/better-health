@@ -5,6 +5,8 @@ export interface CurrentUser {
   id: number;
   username: string;
   isAdmin: boolean;
+  /** IANA zone; days lock by the date here. */
+  timeZone: string;
 }
 
 export const meQuery = queryOptions({
@@ -42,5 +44,13 @@ export function useLogout() {
       queryClient.clear();
       queryClient.setQueryData(meQuery.queryKey, null);
     },
+  });
+}
+
+export function useSetTimeZone() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (timeZone: string) => unwrap(api.auth.me.$patch({ json: { timeZone } })),
+    onSuccess: ({ user }) => queryClient.setQueryData(meQuery.queryKey, user),
   });
 }

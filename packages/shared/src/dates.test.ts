@@ -5,8 +5,11 @@ import {
   datesInMonth,
   daysInMonth,
   formatDate,
+  isEditableDate,
+  isoDateIn,
   isValidIsoDate,
   isValidIsoMonth,
+  isValidTimeZone,
   localIsoDate,
   parseMonth,
   shiftMonth,
@@ -151,5 +154,43 @@ describe("addDays", () => {
         },
       ),
     );
+  });
+});
+
+describe("isoDateIn", () => {
+  test("is the date in the given time zone", () => {
+    // 01:30 UTC on Oct 9 is still the evening of Oct 8 in Los Angeles.
+    const instant = new Date("2026-10-09T01:30:00Z");
+    expect(isoDateIn(instant, "UTC")).toBe("2026-10-09");
+    expect(isoDateIn(instant, "America/Los_Angeles")).toBe("2026-10-08");
+    expect(isoDateIn(new Date("2026-10-08T22:00:00Z"), "Asia/Tokyo")).toBe("2026-10-09");
+  });
+});
+
+describe("isValidTimeZone", () => {
+  test.each(["UTC", "America/Chicago", "Europe/London"])("accepts %p", (zone) => {
+    expect(isValidTimeZone(zone)).toBe(true);
+  });
+  test.each(["", "Mars/Olympus", "not a zone"])("rejects %p", (zone) => {
+    expect(isValidTimeZone(zone)).toBe(false);
+  });
+});
+
+describe("isEditableDate", () => {
+  test("today and the two days before it", () => {
+    expect(isEditableDate("2026-10-08", "2026-10-08")).toBe(true);
+    expect(isEditableDate("2026-10-07", "2026-10-08")).toBe(true);
+    expect(isEditableDate("2026-10-06", "2026-10-08")).toBe(true);
+    expect(isEditableDate("2026-10-05", "2026-10-08")).toBe(false);
+  });
+
+  test("never a future day", () => {
+    expect(isEditableDate("2026-10-09", "2026-10-08")).toBe(false);
+  });
+
+  test("across a month and a year", () => {
+    expect(isEditableDate("2026-11-29", "2026-12-01")).toBe(true);
+    expect(isEditableDate("2026-11-28", "2026-12-01")).toBe(false);
+    expect(isEditableDate("2026-12-30", "2027-01-01")).toBe(true);
   });
 });

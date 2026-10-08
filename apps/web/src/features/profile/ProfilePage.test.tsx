@@ -17,6 +17,20 @@ describe("profile page", () => {
     expect(await screen.findByText(/No highlights yet/)).toBeInTheDocument();
   });
 
+  test("sets the time zone", async () => {
+    const { user } = renderApp("/profile");
+    const select = await screen.findByRole("combobox", { name: "Time zone" });
+    expect(select).toHaveValue("UTC");
+    await user.selectOptions(select, "America/Chicago");
+    await waitFor(() => expect(fake.state.user?.timeZone).toBe("America/Chicago"));
+    expect(fake.state.requests).toContainEqual({
+      method: "PATCH",
+      path: "/api/auth/me",
+      body: { timeZone: "America/Chicago" },
+    });
+    expect(select).toHaveValue("America/Chicago");
+  });
+
   test("sets the base burn from today on, keeping earlier changes", async () => {
     fake.setBaseCalories(2100, "2026-09-01");
     const { user } = renderApp("/profile");

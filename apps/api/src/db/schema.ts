@@ -19,6 +19,8 @@ export const users = sqliteTable(
     createdAt: text("created_at").notNull(),
     // Admins can download the whole database. Granted only from the CLI.
     isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+    // IANA zone, set on the Profile page. Days lock by the date here.
+    timeZone: text("time_zone").notNull().default("UTC"),
   },
   (t) => [uniqueIndex("users_username_unique").on(sql`lower(${t.username})`)],
 );

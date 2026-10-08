@@ -9,8 +9,11 @@ async function setup() {
     body === undefined ? t.request(path, { method, cookie }) : t.json(path, method, body, cookie);
   const create = async (name: string, category = "cardio") =>
     (await (await send("POST", "/api/exercise-types", { category, name })).json()) as ExerciseType;
-  const log = (date: string, exerciseTypeId: number, measurements: unknown[] = []) =>
-    send("POST", `/api/days/${date}/exercises`, { exerciseTypeId, measurements });
+  // Each entry is logged on its day: only recent days can be changed.
+  const log = (date: string, exerciseTypeId: number, measurements: unknown[] = []) => {
+    t.travelTo(date);
+    return send("POST", `/api/days/${date}/exercises`, { exerciseTypeId, measurements });
+  };
   const list = async (query = "") =>
     (await (await send("GET", `/api/exercise-types${query}`)).json()) as ExerciseType[];
   return { ...t, cookie, send, create, list, log };

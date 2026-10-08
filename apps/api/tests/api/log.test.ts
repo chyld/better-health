@@ -5,12 +5,17 @@ import { createTestApp } from "../helpers/app";
 test("lists every day with anything logged, newest first, with its exercises", async () => {
   const t = createTestApp();
   const { cookie } = await t.signedInUser("alice");
-  const patch = (date: string, body: unknown) => t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  // Each write happens on its day: only recent days can be changed.
+  const patch = (date: string, body: unknown) => {
+    t.travelTo(date);
+    return t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  };
   const walking = (await (
     await t.json("/api/exercise-types", "POST", { name: "Walking", category: "cardio" }, cookie)
   ).json()) as ExerciseType;
-  const addExercise = (date: string, amount?: number) =>
-    t.json(
+  const addExercise = (date: string, amount?: number) => {
+    t.travelTo(date);
+    return t.json(
       `/api/days/${date}/exercises`,
       "POST",
       {
@@ -19,6 +24,7 @@ test("lists every day with anything logged, newest first, with its exercises", a
       },
       cookie,
     );
+  };
 
   await patch("2026-09-15", { caloriesIn: 1800, caloriesActive: 2400, note: "older" });
   await patch("2026-10-02", { weightLbs: 182.4 });

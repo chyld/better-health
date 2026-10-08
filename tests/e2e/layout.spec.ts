@@ -42,7 +42,12 @@ test("desktop keyboard: arrows move days, [ ] change month, e logs exercise", as
   await expect(page).toHaveURL(/day=2026-10-03/);
   await page.keyboard.press("ArrowDown");
   await expect(cell(page, "2026-10-10")).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expect(cell(page, "2026-10-01")).toBeFocused();
 
+  // Oct 1 can still be changed (future days cannot), so e reaches its stickers.
   await page.keyboard.press("e");
   await expect(page.getByRole("button", { name: "Log Walking" })).toBeFocused();
 

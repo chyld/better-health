@@ -14,6 +14,8 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .transform((v) => v === "true")
     .optional(),
+  /** NODE_ENV=test only: the server's clock starts at this instant, so e2e days stay editable. */
+  TEST_NOW: z.iso.datetime().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

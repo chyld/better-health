@@ -16,7 +16,11 @@ const EMPTY = {
 test("lists every day with calories, weight, steps or distance, newest first, with net", async () => {
   const t = createTestApp();
   const { cookie } = await t.signedInUser("alice");
-  const patch = (date: string, body: unknown) => t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  // Each write happens on its day: only recent days can be changed.
+  const patch = (date: string, body: unknown) => {
+    t.travelTo(date);
+    return t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  };
   await patch("2026-09-15", { caloriesIn: 1800, caloriesActive: 2400 });
   await patch("2026-10-02", { weightLbs: 182.4 });
   await patch("2026-10-01", { note: "only a note" });

@@ -9,9 +9,11 @@ import { cn } from "@/lib/utils";
 
 export function NoteField({
   value,
+  readOnly = false,
   onSave,
 }: {
   value: string | null;
+  readOnly?: boolean;
   onSave: (note: string | null) => void;
 }) {
   const id = useId();
@@ -47,8 +49,12 @@ export function NoteField({
         value={text}
         maxLength={DAY_NOTE_MAX}
         rows={4}
-        className="border-white bg-white text-base shadow-sm lg:text-sm"
-        placeholder="How did today go?"
+        readOnly={readOnly}
+        className={cn(
+          "border-white bg-white text-base shadow-sm lg:text-sm",
+          readOnly && "bg-white/60 shadow-none",
+        )}
+        placeholder={readOnly ? "No note." : "How did today go?"}
         onChange={(e) => {
           setText(e.target.value);
           save.call(e.target.value);

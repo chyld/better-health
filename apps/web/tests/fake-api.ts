@@ -41,7 +41,7 @@ const PASSWORD = "password123";
 
 function createFake() {
   const state = {
-    user: null as { id: number; username: string; isAdmin: boolean } | null,
+    user: null as { id: number; username: string; isAdmin: boolean; timeZone: string } | null,
     days: new Map<string, DayRow>(),
     entries: [] as EntryRow[],
     types: [] as TypeRow[],
@@ -163,7 +163,7 @@ function createFake() {
           { status: 401 },
         );
       }
-      state.user = { id: 1, username: body.username, isAdmin: false };
+      state.user = { id: 1, username: body.username, isAdmin: false, timeZone: "UTC" };
       return HttpResponse.json({ user: state.user });
     }),
     http.post("*/api/auth/logout", () => {
@@ -173,6 +173,12 @@ function createFake() {
     http.get("*/api/auth/me", () =>
       state.user ? HttpResponse.json({ user: state.user }) : unauthorized(),
     ),
+    http.patch("*/api/auth/me", async ({ request }) => {
+      if (!state.user) return unauthorized();
+      const { timeZone } = (await record(request, "/api/auth/me")) as { timeZone: string };
+      state.user = { ...state.user, timeZone };
+      return HttpResponse.json({ user: state.user });
+    }),
     http.get("*/api/admin/backup", () => {
       if (!state.user) return unauthorized();
       if (!state.user.isAdmin) {
@@ -399,7 +405,7 @@ function createFake() {
     handlers,
     PASSWORD,
     signIn(username = "alice", { admin = false } = {}) {
-      state.user = { id: 1, username, isAdmin: admin };
+      state.user = { id: 1, username, isAdmin: admin, timeZone: "UTC" };
     },
     setDay(date: string, values: Partial<DayRow>) {
       state.days.set(date, { ...(state.days.get(date) ?? emptyDay()), ...values });

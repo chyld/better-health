@@ -14,7 +14,11 @@ async function setup(username = "alice") {
     t.json("/api/base-calories", "PUT", { calories, startsOn }, cookie);
   const changes = async () =>
     (await (await t.request("/api/base-calories", { cookie })).json()) as BaseCaloriesChange[];
-  const patch = (date: string, body: unknown) => t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  // Each write happens on its day: only recent days can be changed.
+  const patch = (date: string, body: unknown) => {
+    t.travelTo(date);
+    return t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  };
   const day = async (date: string) =>
     (await (await t.request(`/api/days/${date}`, { cookie })).json()) as DayDetail;
   return { ...t, cookie, setBase, changes, patch, day };
@@ -67,20 +71,20 @@ describe("base calories", () => {
     const s = await setup();
     await s.patch("2026-10-07", { caloriesIn: 2500, caloriesActive: 3600 });
     await s.setBase(2000, "2026-10-08");
-    await s.patch("2026-12-31", { caloriesIn: 2500, caloriesActive: 1000 });
-    await s.setBase(1900, "2027-01-01");
+    await s.patch("2026-10-19", { caloriesIn: 2500, caloriesActive: 1000 });
+    await s.setBase(1900, "2026-10-20");
     // Logged after the change, but dated before it.
-    await s.patch("2026-12-30", { caloriesIn: 2500, caloriesActive: 500 });
-    await s.patch("2027-01-01", { caloriesIn: 2500, caloriesActive: 1000 });
+    await s.patch("2026-10-18", { caloriesIn: 2500, caloriesActive: 500 });
+    await s.patch("2026-10-20", { caloriesIn: 2500, caloriesActive: 1000 });
 
     expect(await s.changes()).toEqual([
-      { startsOn: "2027-01-01", calories: 1900 },
+      { startsOn: "2026-10-20", calories: 1900 },
       { startsOn: "2026-10-08", calories: 2000 },
     ]);
     expect(await s.day("2026-10-07")).toMatchObject({ caloriesBase: 0, caloriesOut: 3600 });
-    expect(await s.day("2026-12-30")).toMatchObject({ caloriesBase: 2000, caloriesOut: 2500 });
-    expect(await s.day("2026-12-31")).toMatchObject({ caloriesBase: 2000, caloriesOut: 3000 });
-    expect(await s.day("2027-01-01")).toMatchObject({ caloriesBase: 1900, caloriesOut: 2900 });
+    expect(await s.day("2026-10-18")).toMatchObject({ caloriesBase: 2000, caloriesOut: 2500 });
+    expect(await s.day("2026-10-19")).toMatchObject({ caloriesBase: 2000, caloriesOut: 3000 });
+    expect(await s.day("2026-10-20")).toMatchObject({ caloriesBase: 1900, caloriesOut: 2900 });
   });
 
   test("a second change on the same day replaces the first; changing back drops it", async () => {

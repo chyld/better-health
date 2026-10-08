@@ -8,7 +8,7 @@ import {
   weightSchema,
 } from "@better-health/shared";
 import { useQuery } from "@tanstack/react-query";
-import { Flame, Footprints, Route, Scale, Sparkles, Utensils } from "lucide-react";
+import { Flame, Footprints, Lock, Route, Scale, Sparkles, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { longDate } from "@/features/calendar/describe";
 import { ApiError } from "@/lib/api";
@@ -19,14 +19,19 @@ import { NoteField } from "./NoteField";
 import { NumberField } from "./NumberField";
 import { dayQuery, useUpdateDay } from "./queries";
 
-/** `heading` is false inside the phone sheet, whose title already names the day. */
+/**
+ * `heading` is false inside the phone sheet, whose title already names the day. A `locked` day
+ * (older than two days, or in the future) is shown read only.
+ */
 export function DayPanel({
   date,
   heading = true,
+  locked = false,
   focusExercise,
 }: {
   date: string;
   heading?: boolean;
+  locked?: boolean;
   /** Each new value focuses the exercise stickers, once they have loaded. */
   focusExercise?: number;
 }) {
@@ -57,11 +62,19 @@ export function DayPanel({
         </div>
       )}
 
+      {locked && (
+        <p className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">
+          <Lock aria-hidden="true" className="size-4 shrink-0" />
+          Only today and the 2 days before it can be changed.
+        </p>
+      )}
+
       {day && (
         <>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
               <NumberField
+                readOnly={locked}
                 label="Calories in"
                 icon={<Utensils />}
                 tone={metricTone.in}
@@ -70,6 +83,7 @@ export function DayPanel({
                 onSave={(caloriesIn) => save({ caloriesIn })}
               />
               <NumberField
+                readOnly={locked}
                 label="Active calories"
                 icon={<Flame />}
                 tone={metricTone.out}
@@ -102,6 +116,7 @@ export function DayPanel({
               </output>
             </div>
             <NumberField
+              readOnly={locked}
               label="Weight"
               icon={<Scale />}
               tone={metricTone.weight}
@@ -114,6 +129,7 @@ export function DayPanel({
             />
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
               <NumberField
+                readOnly={locked}
                 label="Steps"
                 icon={<Footprints />}
                 tone={metricTone.steps}
@@ -122,6 +138,7 @@ export function DayPanel({
                 onSave={(steps) => save({ steps })}
               />
               <NumberField
+                readOnly={locked}
                 label="Distance"
                 icon={<Route />}
                 tone={metricTone.distance}
@@ -134,9 +151,9 @@ export function DayPanel({
             </div>
           </div>
 
-          <ExerciseSection day={day} focusRequest={focusExercise} />
+          <ExerciseSection day={day} focusRequest={focusExercise} locked={locked} />
 
-          <NoteField value={day.note} onSave={(note) => save({ note })} />
+          <NoteField value={day.note} readOnly={locked} onSave={(note) => save({ note })} />
         </>
       )}
     </section>

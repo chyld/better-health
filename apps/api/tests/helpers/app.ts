@@ -37,7 +37,15 @@ export function createTestApp(start = "2026-10-02T12:00:00.000Z") {
     return { user, cookie: await login(username) };
   }
 
-  return { app, db, clock, request, json, login, signedInUser };
+  /**
+   * Moves the clock to noon (UTC, the default time zone) on `date`, so that day can be changed.
+   * For tests that log data on many days; sessions last 30 days, so stay within that.
+   */
+  function travelTo(date: string) {
+    clock.set(`${date}T12:00:00.000Z`);
+  }
+
+  return { app, db, clock, request, json, login, signedInUser, travelTo };
 }
 
 /** "bh_session=<token>" from a response's Set-Cookie header. */

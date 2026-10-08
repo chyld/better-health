@@ -148,7 +148,7 @@ describe("PATCH /api/days/:date/exercises/:id", () => {
     const s = await setup();
     const walk = await s.newType("Walking");
     const added = await s.addOk("2026-10-02", { exerciseTypeId: walk.id });
-    const res = await s.patch("2026-10-03", added.exercises[0]?.id, { measurements: [miles(2)] });
+    const res = await s.patch("2026-10-01", added.exercises[0]?.id, { measurements: [miles(2)] });
     expect(res.status).toBe(404);
   });
 

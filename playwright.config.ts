@@ -35,7 +35,14 @@ export default defineConfig({
     command: `rm -f ${DATABASE_PATH}* && bun run build && bun apps/api/src/server.ts`,
     url: `http://127.0.0.1:${PORT}/api/health`,
     // A fixed version keeps screenshots the same from commit to commit.
-    env: { NODE_ENV: "test", PORT: String(PORT), DATABASE_PATH, APP_VERSION: "e2e" },
+    env: {
+      NODE_ENV: "test",
+      PORT: String(PORT),
+      DATABASE_PATH,
+      APP_VERSION: "e2e",
+      // Noon on the browser's frozen "today" (America/Chicago), so its days are editable.
+      TEST_NOW: "2026-10-02T17:00:00.000Z",
+    },
     reuseExistingServer: false,
     timeout: 120_000,
     stdout: "ignore",

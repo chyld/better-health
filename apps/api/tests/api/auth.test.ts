@@ -14,7 +14,9 @@ describe("POST /api/auth/login", () => {
     const res = await t.json(LOGIN, "POST", { username: "alice", password: TEST_PASSWORD });
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ user: { id: user.id, username: "alice", isAdmin: false } });
+    expect(await res.json()).toEqual({
+      user: { id: user.id, username: "alice", isAdmin: false, timeZone: "UTC" },
+    });
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("bh_session=");
     expect(cookie).toContain("HttpOnly");
@@ -136,7 +138,9 @@ describe("GET /api/auth/me", () => {
     const { user, cookie } = await t.signedInUser("alice");
     const res = await t.request("/api/auth/me", { cookie });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ user: { id: user.id, username: "alice", isAdmin: false } });
+    expect(await res.json()).toEqual({
+      user: { id: user.id, username: "alice", isAdmin: false, timeZone: "UTC" },
+    });
   });
 
   test("says when the user is an admin", async () => {

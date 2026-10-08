@@ -5,7 +5,11 @@ import { createTestApp } from "../helpers/app";
 test("lists every day with a note, newest first, text unchanged", async () => {
   const t = createTestApp();
   const { cookie } = await t.signedInUser("alice");
-  const patch = (date: string, body: unknown) => t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  // Each write happens on its day: only recent days can be changed.
+  const patch = (date: string, body: unknown) => {
+    t.travelTo(date);
+    return t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  };
   await patch("2026-09-15", { note: "older" });
   await patch("2026-10-02", { note: "line one\n  line two" });
   await patch("2026-10-01", { caloriesIn: 1800 });

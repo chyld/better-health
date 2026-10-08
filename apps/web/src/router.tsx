@@ -1,4 +1,4 @@
-import { isValidIsoDate, isValidIsoMonth, localIsoDate } from "@better-health/shared";
+import { isoDateIn, isValidIsoDate, isValidIsoMonth } from "@better-health/shared";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
@@ -21,7 +21,7 @@ import { ProfilePage } from "@/features/profile/ProfilePage";
 
 export interface RouterContext {
   queryClient: QueryClient;
-  today: () => string;
+  now: () => Date;
 }
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
@@ -53,7 +53,14 @@ const authedRoute = createRoute({
         search: location.href === "/" ? {} : { redirect: location.href },
       });
     }
-    return { user };
+    return {
+      user,
+      /** Today in the user's time zone, which decides which days can still be changed. */
+      today: () => {
+        const zone = context.queryClient.getQueryData(meQuery.queryKey)?.timeZone ?? user.timeZone;
+        return isoDateIn(context.now(), zone);
+      },
+    };
   },
   component: function AuthedLayout() {
     const { user } = authedRoute.useRouteContext();
@@ -153,14 +160,14 @@ const routeTree = rootRoute.addChildren([
 export function createAppRouter(options: {
   queryClient: QueryClient;
   history?: RouterHistory;
-  today?: () => string;
+  now?: () => Date;
 }) {
   return createRouter({
     routeTree,
     history: options.history,
     context: {
       queryClient: options.queryClient,
-      today: options.today ?? (() => localIsoDate(new Date())),
+      now: options.now ?? (() => new Date()),
     },
     defaultPreload: false,
   });

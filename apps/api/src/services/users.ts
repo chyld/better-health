@@ -8,7 +8,7 @@ import { ConflictError, NotFoundError, ValidationError } from "../lib/errors";
 import { hashPassword, verifyPassword } from "../lib/password";
 
 export type User = typeof users.$inferSelect;
-export type PublicUser = Pick<User, "id" | "username" | "createdAt" | "isAdmin">;
+export type PublicUser = Pick<User, "id" | "username" | "createdAt" | "isAdmin" | "timeZone">;
 
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
@@ -17,7 +17,13 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function toPublic(user: User): PublicUser {
-  return { id: user.id, username: user.username, createdAt: user.createdAt, isAdmin: user.isAdmin };
+  return {
+    id: user.id,
+    username: user.username,
+    createdAt: user.createdAt,
+    isAdmin: user.isAdmin,
+    timeZone: user.timeZone,
+  };
 }
 
 export function findUserByUsername(db: Db, username: string): User | undefined {
@@ -75,6 +81,11 @@ export function setAdmin(db: Db, username: string, isAdmin: boolean): PublicUser
   const user = requireUser(db, username);
   db.update(users).set({ isAdmin }).where(eq(users.id, user.id)).run();
   return toPublic({ ...user, isAdmin });
+}
+
+/** Sets the zone whose date decides which days the user can still change. */
+export function setTimeZone(db: Db, userId: number, timeZone: string): void {
+  db.update(users).set({ timeZone }).where(eq(users.id, userId)).run();
 }
 
 /** Deletes the user; their logs, labels, exercises and sessions cascade. */

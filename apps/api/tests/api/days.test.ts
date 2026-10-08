@@ -6,7 +6,11 @@ import { createTestApp } from "../helpers/app";
 async function setup() {
   const t = createTestApp();
   const { user, cookie } = await t.signedInUser("alice");
-  const patch = (date: string, body: unknown) => t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  // Each write happens on its day, so older and later days can be logged too.
+  const patch = (date: string, body: unknown) => {
+    t.travelTo(date);
+    return t.json(`/api/days/${date}`, "PATCH", body, cookie);
+  };
   const day = async (date: string) =>
     (await (await t.request(`/api/days/${date}`, { cookie })).json()) as DayDetail;
   const month = async (m: string) =>
@@ -156,7 +160,7 @@ describe("PATCH /api/days/:date", () => {
   test("records when the day was updated", async () => {
     const s = await setup();
     s.clock.advance(DAY_MS);
-    await s.patch("2026-10-02", { caloriesIn: 1 });
+    await s.json("/api/days/2026-10-02", "PATCH", { caloriesIn: 1 }, s.cookie);
     const row = s.db.query.dailyLogs.findFirst();
     expect((await row)?.updatedAt).toBe("2026-10-03T12:00:00.000Z");
   });

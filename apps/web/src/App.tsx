@@ -15,14 +15,14 @@ export function createQueryClient() {
 export function App({
   queryClient: providedClient,
   history,
-  today,
+  now,
 }: {
   queryClient?: QueryClient;
   history?: RouterHistory;
-  today?: () => string;
+  now?: () => Date;
 }) {
   const [queryClient] = useState(() => providedClient ?? createQueryClient());
-  const [router] = useState(() => createAppRouter({ queryClient, history, today }));
+  const [router] = useState(() => createAppRouter({ queryClient, history, now }));
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />

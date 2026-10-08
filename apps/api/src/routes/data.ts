@@ -17,6 +17,7 @@ import { z } from "zod";
 import type { AppEnv, Deps } from "../context";
 import { validate } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
+import { requireEditableDay } from "../middleware/day-lock";
 import { listBaseCalories, setBaseCalories } from "../services/base-calories";
 import { getDay, getMonth, listHistory, listLog, listNotes, patchDay } from "../services/days";
 import {
@@ -47,6 +48,8 @@ export function dataRoutes(deps: Deps) {
   return new Hono<AppEnv>()
     .use("/months/*", auth)
     .use("/days/*", auth)
+    .use("/days/:date", requireEditableDay(deps))
+    .use("/days/:date/*", requireEditableDay(deps))
     .use("/exercise-types/*", auth)
     .use("/notes", auth)
     .use("/history", auth)

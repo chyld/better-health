@@ -1,4 +1,4 @@
-import { shiftMonth } from "@better-health/shared";
+import { isEditableDate, shiftMonth } from "@better-health/shared";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { type TouchEvent, useEffect, useRef, useState } from "react";
@@ -152,6 +152,7 @@ export function CalendarPage() {
             <DayPanel
               key={panelDate}
               date={panelDate}
+              locked={!isEditableDate(panelDate, today)}
               focusExercise={exerciseFocus?.date === panelDate ? exerciseFocus.n : undefined}
             />
           ) : (
@@ -179,7 +180,14 @@ export function CalendarPage() {
               <SheetDescription className="sr-only">
                 Calories, weight, exercises and notes for this day
               </SheetDescription>
-              {selected && <DayPanel key={selected} date={selected} heading={false} />}
+              {selected && (
+                <DayPanel
+                  key={selected}
+                  date={selected}
+                  heading={false}
+                  locked={!isEditableDate(selected, today)}
+                />
+              )}
             </SheetContent>
           </Sheet>
         </>

@@ -425,3 +425,59 @@ describe("exercise", () => {
     await waitFor(() => expect(within(form).getByLabelText("Unit")).toHaveValue(""));
   });
 });
+
+describe("locked days", () => {
+  // Today is Oct 2: Sep 30, Oct 1 and Oct 2 can be changed.
+  test("a day older than two days is read only", async () => {
+    const walk = fake.addType("Walking");
+    fake.setDay("2026-09-29", { caloriesIn: 1850, note: "old" });
+    fake.addEntry("2026-09-29", walk.id, [{ unit: "miles", amount: 3 }]);
+    const { user, panel } = await openDesktop("/calendar/2026-09?day=2026-09-29");
+
+    expect(
+      within(panel).getByText("Only today and the 2 days before it can be changed."),
+    ).toBeInTheDocument();
+    const calories = within(panel).getByLabelText("Calories in");
+    expect(calories).toHaveValue("1850");
+    expect(calories).toHaveAttribute("readonly");
+    expect(within(panel).getByLabelText("Notes")).toHaveAttribute("readonly");
+
+    await user.type(calories, "9");
+    await user.tab();
+    expect(calories).toHaveValue("1850");
+
+    // What was logged is listed, with nothing to add, measure or remove.
+    expect(within(panel).getByRole("list", { name: "Logged exercises" })).toHaveTextContent(
+      "Walking",
+    );
+    expect(within(panel).queryByRole("group", { name: "Tap to log" })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: /Measure|Delete|Remove/ })).toBeNull();
+    expect(fake.state.requests).toEqual([]);
+  });
+
+  test("a future day is read only", async () => {
+    const { panel } = await openDesktop("/calendar/2026-10?day=2026-10-03");
+    expect(within(panel).getByLabelText("Weight")).toHaveAttribute("readonly");
+    expect(within(panel).getByText(/Only today and the 2 days before it/)).toBeInTheDocument();
+  });
+
+  test("two days ago can still be changed", async () => {
+    const { user, panel } = await openDesktop("/calendar/2026-09?day=2026-09-30");
+    expect(within(panel).queryByText(/Only today and the 2 days before it/)).toBeNull();
+    expect(within(panel).getByLabelText("Weight")).not.toHaveAttribute("readonly");
+    await user.type(within(panel).getByLabelText("Weight"), "182");
+    await user.tab();
+    await waitFor(() => expect(patches()[0]?.path).toBe("/api/days/2026-09-30"));
+  });
+
+  test("today follows the user's time zone", async () => {
+    // Noon UTC on Oct 2 is already Oct 3 in Kiritimati (UTC+14), so Sep 30 has locked.
+    fake.signIn();
+    fake.state.user = {
+      ...(fake.state.user as NonNullable<typeof fake.state.user>),
+      timeZone: "Pacific/Kiritimati",
+    };
+    const { panel } = await openDesktop("/calendar/2026-09?day=2026-09-30");
+    expect(within(panel).getByLabelText("Weight")).toHaveAttribute("readonly");
+  });
+});

@@ -33,7 +33,16 @@ const errorText = (e: unknown) =>
  * Each new `focusRequest` (the e shortcut) moves focus to the first sticker, as soon as the
  * stickers have loaded.
  */
-export function ExerciseSection({ day, focusRequest }: { day: DayDetail; focusRequest?: number }) {
+export function ExerciseSection({
+  day,
+  focusRequest,
+  locked = false,
+}: {
+  day: DayDetail;
+  focusRequest?: number;
+  /** Lists what was logged, with no way to add, measure or delete. */
+  locked?: boolean;
+}) {
   const mutations = useExerciseMutations(day.date);
   const [measuring, setMeasuring] = useState<number | null>(null);
   const error = errorText(mutations.add.error ?? mutations.update.error ?? mutations.remove.error);
@@ -58,7 +67,7 @@ export function ExerciseSection({ day, focusRequest }: { day: DayDetail; focusRe
         Exercise
       </h3>
 
-      <Stickers mutations={mutations} focusRequest={focusRequest} />
+      {!locked && <Stickers mutations={mutations} focusRequest={focusRequest} />}
 
       {day.exercises.length === 0 ? (
         <p className="text-sm text-sky-900">No exercise logged.</p>
@@ -69,6 +78,7 @@ export function ExerciseSection({ day, focusRequest }: { day: DayDetail; focusRe
               key={entry.id}
               mutations={mutations}
               entry={entry}
+              locked={locked}
               measuring={measuring === entry.id}
               onMeasuringChange={(open) => setMeasuring(open ? entry.id : null)}
             />
@@ -155,11 +165,13 @@ function Stickers({
 function EntryRow({
   mutations: { update, remove },
   entry,
+  locked,
   measuring,
   onMeasuringChange,
 }: {
   mutations: Mutations;
   entry: ExerciseEntry;
+  locked: boolean;
   measuring: boolean;
   onMeasuringChange: (open: boolean) => void;
 }) {
@@ -183,7 +195,7 @@ function EntryRow({
           )}
           {entry.archived && <span className="text-muted-foreground"> (archived)</span>}
         </span>
-        {!measuring && entry.measurements.length < MEASUREMENTS_MAX && (
+        {!locked && !measuring && entry.measurements.length < MEASUREMENTS_MAX && (
           <Button
             variant="ghost"
             size="sm"
@@ -194,16 +206,18 @@ function EntryRow({
             <Ruler /> Measure
           </Button>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-11 lg:size-9"
-          aria-label={`Delete ${entryText(entry)}`}
-          disabled={busy}
-          onClick={() => remove.mutate(entry.id)}
-        >
-          <Trash2 />
-        </Button>
+        {!locked && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-11 lg:size-9"
+            aria-label={`Delete ${entryText(entry)}`}
+            disabled={busy}
+            onClick={() => remove.mutate(entry.id)}
+          >
+            <Trash2 />
+          </Button>
+        )}
       </div>
 
       {entry.measurements.length > 0 && (
@@ -215,21 +229,25 @@ function EntryRow({
             >
               <span className="font-bold tabular-nums">{formatAmount(m.amount)}</span>
               <span className="ml-1">{m.unit}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${measurementText(m)} from ${entry.name}`}
-                disabled={busy}
-                onClick={() => save(entry.measurements.filter((x) => x.unit !== m.unit))}
-                className="grid size-8 place-items-center rounded-full outline-none hover:bg-sky-200 focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:size-6"
-              >
-                <X aria-hidden="true" className="size-3.5" />
-              </button>
+              {locked ? (
+                <span className="w-2" />
+              ) : (
+                <button
+                  type="button"
+                  aria-label={`Remove ${measurementText(m)} from ${entry.name}`}
+                  disabled={busy}
+                  onClick={() => save(entry.measurements.filter((x) => x.unit !== m.unit))}
+                  className="grid size-8 place-items-center rounded-full outline-none hover:bg-sky-200 focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:size-6"
+                >
+                  <X aria-hidden="true" className="size-3.5" />
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
 
-      {measuring && (
+      {measuring && !locked && (
         <MeasureForm
           entry={entry}
           pending={update.isPending}

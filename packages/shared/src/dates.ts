@@ -57,3 +57,38 @@ export function addDays(date: string, n: number): string {
   d.setUTCDate(d.getUTCDate() + n);
   return formatDate(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
 }
+
+const zoneFormats = new Map<string, Intl.DateTimeFormat>();
+
+/** The calendar date of an instant in an IANA time zone, such as "America/Chicago". */
+export function isoDateIn(instant: Date, timeZone: string): string {
+  let format = zoneFormats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    zoneFormats.set(timeZone, format);
+  }
+  const part = (type: string) => format.formatToParts(instant).find((p) => p.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+export function isValidTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return value.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Days that can still be changed: today and the two before it. */
+export const EDITABLE_DAYS = 3;
+
+/** Whether a day's data can be changed: not in the future, and no more than two days old. */
+export function isEditableDate(date: string, today: string): boolean {
+  return date <= today && date > addDays(today, -EDITABLE_DAYS);
+}

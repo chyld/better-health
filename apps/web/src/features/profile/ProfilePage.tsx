@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   ArrowUp,
   ChevronDown,
+  Clock,
   Flame,
   Paintbrush,
   Trash2,
@@ -25,6 +26,7 @@ import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { meQuery, useSetTimeZone } from "@/features/auth/queries";
 import { exerciseTypesQuery } from "@/features/labels/queries";
 import { ApiError } from "@/lib/api";
 import { highlightTone, metricTone } from "@/lib/tones";
@@ -76,12 +78,77 @@ export function ProfilePage() {
         </div>
       </section>
 
+      <TimeZone />
+
       <BaseCalories />
 
       <Highlights />
 
       <Versions />
     </main>
+  );
+}
+
+/** Every zone the browser knows, plus UTC, which some browsers leave out. */
+function timeZones(current: string): string[] {
+  const zones = new Set(["UTC", ...Intl.supportedValuesOf("timeZone"), current]);
+  return [...zones].sort((a, b) => (a === "UTC" ? -1 : b === "UTC" ? 1 : a.localeCompare(b)));
+}
+
+function TimeZone() {
+  const id = useId();
+  const { user } = profileRoute.useRouteContext();
+  const timeZone = useQuery(meQuery).data?.timeZone ?? user.timeZone;
+  const set = useSetTimeZone();
+  const device = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  return (
+    <section
+      aria-labelledby="zone-heading"
+      className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-violet-100"
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-700">
+          <Clock className="size-5" aria-hidden="true" />
+        </span>
+        <div className="space-y-1">
+          <h2 id="zone-heading" className="text-lg font-bold">
+            Time zone
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Decides when your day starts. You can change today and the 2 days before it; older days
+            are locked.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`${id}-zone`} className="text-xs">
+          Time zone
+        </Label>
+        <Select id={`${id}-zone`} value={timeZone} onChange={(zone) => set.mutate(zone)}>
+          {timeZones(timeZone).map((zone) => (
+            <option key={zone} value={zone}>
+              {zone.replaceAll("_", " ")}
+            </option>
+          ))}
+        </Select>
+      </div>
+      {device && device !== timeZone && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={set.isPending}
+          onClick={() => set.mutate(device)}
+        >
+          Use this device's time zone ({device.replaceAll("_", " ")})
+        </Button>
+      )}
+      {set.error && (
+        <p role="alert" className="text-sm text-destructive">
+          {errorText(set.error)}
+        </p>
+      )}
+    </section>
   );
 }
 

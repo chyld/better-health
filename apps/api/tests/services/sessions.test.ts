@@ -36,6 +36,7 @@ describe("validateSession", () => {
       username: "alice",
       createdAt: user.createdAt,
       isAdmin: false,
+      timeZone: "UTC",
     });
   });
 

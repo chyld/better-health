@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isValidIsoDate, isValidIsoMonth } from "./dates";
+import { isValidIsoDate, isValidIsoMonth, isValidTimeZone } from "./dates";
 
 export const usernameSchema = z
   .string()
@@ -15,6 +15,9 @@ export const passwordSchema = z
 
 export const isoDateSchema = z.string().refine(isValidIsoDate, "Expected a date like 2026-10-02");
 export const isoMonthSchema = z.string().refine(isValidIsoMonth, "Expected a month like 2026-10");
+
+/** An IANA time zone, such as "America/Chicago"; days lock by the date there. */
+export const timeZoneSchema = z.string().max(64).refine(isValidTimeZone, "Unknown time zone");
 
 export const CALORIES_MAX = 20_000;
 export const WEIGHT_MIN = 50;

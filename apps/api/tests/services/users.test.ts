@@ -31,6 +31,7 @@ describe("createUser", () => {
       username: "chyld",
       createdAt: "2026-10-02T08:00:00.000Z",
       isAdmin: false,
+      timeZone: "UTC",
     });
     expect(user).not.toHaveProperty("passwordHash");
     const row = db.select().from(users).get();

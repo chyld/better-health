@@ -24,6 +24,8 @@ interface Props {
   /** How a saved value reads in the field: 182.4 → "182.4" by default. */
   format?: (value: number) => string;
   suffix?: string;
+  /** Shows the value without letting it change. */
+  readOnly?: boolean;
   /** A line under the field, such as how the value adds up. */
   hint?: ReactNode;
   icon?: ReactNode;
@@ -42,6 +44,7 @@ export function NumberField({
   decimal = false,
   format = String,
   suffix,
+  readOnly = false,
   hint,
   icon,
   tone,
@@ -114,6 +117,7 @@ export function NumberField({
           enterKeyHint="next"
           autoComplete="off"
           value={text}
+          readOnly={readOnly}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -133,6 +137,7 @@ export function NumberField({
           className={cn(
             "h-14 border-white bg-white text-right text-2xl font-bold tabular-nums shadow-sm md:text-2xl lg:h-9 lg:text-sm",
             suffix && "pr-14 lg:pr-10",
+            readOnly && "bg-white/60 shadow-none",
           )}
         />
         {suffix && (

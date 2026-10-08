@@ -77,3 +77,18 @@ test("moves between months", async ({ page }) => {
   await page.getByRole("link", { name: "Today" }).click();
   await expect(page.getByRole("heading", { name: "October 2026" })).toBeVisible();
 });
+
+test("days older than two days are read only, and the server refuses changes", async ({ page }) => {
+  await login(page);
+  await page.goto("/calendar/2026-09");
+  const day = await openDay(page, "2026-09-29");
+  await expect(day.getByText("Only today and the 2 days before it can be changed.")).toBeVisible();
+  await expect(day.getByLabel("Calories in")).toHaveAttribute("readonly", "");
+  await expect(day.getByRole("group", { name: "Tap to log" })).toHaveCount(0);
+
+  const res = await page.request.patch("/api/days/2026-09-29", {
+    data: { caloriesIn: 1800 },
+    headers: { origin: new URL(page.url()).origin },
+  });
+  expect(res.status()).toBe(403);
+});
