@@ -1,16 +1,18 @@
 import {
+  type CellField,
+  cellValue,
   type DaySummary,
-  formatCompact,
-  formatNumber,
-  formatWeight,
   type HighlightColor,
 } from "@better-health/shared";
-import { highlightTone, metricTone, netTone } from "@/lib/tones";
+import { cellTone, fieldKey, formatCellValue } from "@/features/profile/cellFields";
+import { highlightTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 import { describeDay } from "./describe";
 
 interface Props {
   day: DaySummary;
+  /** What to show under the date, in order. */
+  fields: readonly CellField[];
   isToday: boolean;
   isFuture: boolean;
   isSelected: boolean;
@@ -22,6 +24,7 @@ interface Props {
 
 export function DayCell({
   day,
+  fields,
   isToday,
   isFuture,
   isSelected,
@@ -67,93 +70,39 @@ export function DayCell({
           )}
         </span>
       </span>
-      <Values day={day} />
+      <Values day={day} fields={fields} />
     </button>
   );
 }
 
 /**
- * Net calories, number of exercises, weight and steps. Phones stack them in short form;
- * tablets stack them in full; desktops put two to a line in short form, net and weight first.
+ * The values the user chose on Profile, in their order, each after its caption. Days without a
+ * value skip it. Phones and tablets stack them; desktops put two to a line. Phones and desktops
+ * show short numbers (−1.2k), tablets show them in full.
  */
-function Values({ day }: { day: DaySummary }) {
-  const rows: {
-    key: string;
-    short: string;
-    /** Tablet only: the one width with room for it on a line of its own. */
-    long: string;
-    compact: string;
-    full: string;
-    tone: string;
-    /** Position on desktop. */
-    order: string;
-  }[] = [];
-  if (day.net !== null) {
-    rows.push({
-      key: "net",
-      order: "lg:order-1",
-      // Phone cells are ~47px wide; the sign on the value already says "net".
-      short: "N",
-      long: "Net",
-      compact: formatCompact(day.net, { signed: true }),
-      full: formatNumber(day.net, { signed: true }),
-      tone: netTone(day.net).pill,
-    });
-  }
-  if (day.exerciseCount > 0) {
-    const n = String(day.exerciseCount);
-    rows.push({
-      key: "exercise",
-      order: "lg:order-3",
-      short: "Ex",
-      long: "Exercise",
-      compact: n,
-      full: n,
-      tone: `${metricTone.exercise.card} ${metricTone.exercise.text}`,
-    });
-  }
-  if (day.weightLbs !== null) {
-    const w = formatWeight(day.weightLbs);
-    rows.push({
-      key: "weight",
-      order: "lg:order-2",
-      short: "lb",
-      long: "Weight",
-      compact: w,
-      full: w,
-      tone: `${metricTone.weight.card} ${metricTone.weight.text}`,
-    });
-  }
-  if (day.steps !== null) {
-    rows.push({
-      key: "steps",
-      order: "lg:order-4",
-      short: "St",
-      long: "Steps",
-      compact: formatCompact(day.steps),
-      full: formatNumber(day.steps),
-      tone: `${metricTone.steps.card} ${metricTone.steps.text}`,
-    });
-  }
+function Values({ day, fields }: { day: DaySummary; fields: readonly CellField[] }) {
+  const rows = fields.flatMap((field) => {
+    const value = cellValue(day, field);
+    if (value === null) return [];
+    return [{ field, value, ...formatCellValue(field.metric, value) }];
+  });
+  if (rows.length === 0) return null;
   return (
     <span className="flex flex-col gap-0.5 lg:grid lg:grid-cols-2 lg:gap-x-1" aria-hidden="true">
-      {rows.map((r) => (
+      {rows.map(({ field, value, compact, full }) => (
         <span
-          key={r.key}
-          data-value={r.key}
+          key={field.id}
+          data-value={fieldKey(field)}
           className={cn(
-            "flex min-w-0 justify-between gap-0.5 rounded-md px-0.5 py-px font-semibold whitespace-nowrap sm:gap-1 sm:px-1",
-            r.tone,
-            r.order,
+            // When a narrow cell has no room for both, the value wraps under its caption.
+            "flex min-w-0 flex-wrap justify-between gap-x-0.5 rounded-md px-0.5 py-px font-semibold whitespace-nowrap sm:gap-x-1 sm:px-1",
+            cellTone(field, value),
           )}
         >
-          <span className="font-medium">
-            <span className="md:hidden lg:inline">{r.short}</span>
-            <span className="hidden md:inline lg:hidden">{r.long}</span>
-          </span>
-          <span className="shrink-0">
-            <span className="md:hidden lg:inline">{r.compact}</span>
-            <span className="hidden md:inline lg:hidden">{r.full}</span>
+          <span className="font-medium">{field.caption}</span>
+          <span className="ml-auto">
+            <span className="md:hidden lg:inline">{compact}</span>
+            <span className="hidden md:inline lg:hidden">{full}</span>
           </span>
         </span>
       ))}

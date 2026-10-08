@@ -17,6 +17,70 @@ describe("profile page", () => {
     expect(await screen.findByText(/No highlights yet/)).toBeInTheDocument();
   });
 
+  test("adds a calendar cell value with a suggested or typed caption", async () => {
+    fake.addType("Walking");
+    fake.addEntry("2026-10-01", 1, [{ unit: "miles", amount: 2 }]);
+    const { user } = renderApp("/profile");
+    const form = await screen.findByRole("form", { name: "Add a calendar cell value" });
+    const value = within(form).getByLabelText("Value");
+    const caption = within(form).getByLabelText("Caption");
+
+    await user.selectOptions(value, "Walking · miles");
+    expect(caption).toHaveValue("Walk");
+    await user.click(within(form).getByRole("button", { name: "Add to cells" }));
+
+    await user.selectOptions(value, "Distance");
+    expect(caption).toHaveValue("mi");
+    await user.clear(caption);
+    await user.type(caption, "Dist");
+    await user.click(within(form).getByRole("button", { name: "Add to cells" }));
+
+    const list = await screen.findByRole("list", { name: "Calendar cell values, in order" });
+    await waitFor(() =>
+      expect(
+        within(list)
+          .getAllByRole("textbox")
+          .map((i) => (i as HTMLInputElement).value),
+      ).toEqual(["N", "lb", "Ex", "St", "Walk", "Dist"]),
+    );
+    expect(fake.state.cellFields.slice(4)).toMatchObject([
+      { metric: "exercise", exerciseTypeId: 1, unit: "miles", caption: "Walk" },
+      { metric: "distance", exerciseTypeId: null, unit: null, caption: "Dist" },
+    ]);
+    expect(within(list).getByText("Walking · miles")).toBeInTheDocument();
+  });
+
+  test("a caption must fit", async () => {
+    const { user } = renderApp("/profile");
+    const form = await screen.findByRole("form", { name: "Add a calendar cell value" });
+    const caption = within(form).getByLabelText("Caption");
+    await user.clear(caption);
+    expect(within(form).getByText("Caption is required")).toBeInTheDocument();
+    expect(within(form).getByRole("button", { name: "Add to cells" })).toBeDisabled();
+  });
+
+  test("renames, reorders and removes calendar cell values; the preview follows", async () => {
+    const { user } = renderApp("/profile");
+    const list = await screen.findByRole("list", { name: "Calendar cell values, in order" });
+    const preview = () =>
+      [...document.querySelectorAll("figure [data-value]")].map((e) =>
+        e.getAttribute("data-value"),
+      );
+    expect(preview()).toEqual(["net", "weight", "exercises", "steps"]);
+
+    const net = within(list).getByLabelText("Caption for Net calories");
+    await user.clear(net);
+    await user.type(net, "Net{Enter}");
+    await waitFor(() => expect(fake.state.cellFields[0]?.caption).toBe("Net"));
+
+    await user.click(within(list).getByRole("button", { name: "Move Steps up" }));
+    await waitFor(() => expect(preview()).toEqual(["net", "weight", "steps", "exercises"]));
+
+    await user.click(within(list).getByRole("button", { name: "Remove Weight" }));
+    await waitFor(() => expect(preview()).toEqual(["net", "steps", "exercises"]));
+    expect(fake.state.cellFields.map((f) => f.caption)).toEqual(["Net", "St", "Ex"]);
+  });
+
   test("sets the time zone", async () => {
     const { user } = renderApp("/profile");
     const select = await screen.findByRole("combobox", { name: "Time zone" });

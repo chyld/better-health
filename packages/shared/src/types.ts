@@ -1,3 +1,4 @@
+import type { CellMetric } from "./cells";
 import type { HighlightColor, HighlightMetric, HighlightOperator } from "./highlights";
 
 /** Response shapes shared by the API and the web app. */
@@ -116,5 +117,17 @@ export interface HighlightRule {
   operator: HighlightOperator;
   target: number;
   color: HighlightColor;
+  sortOrder: number;
+}
+
+/** One value shown on calendar cells, after its caption, such as "N −500" or "Walk 3.5". */
+export interface CellField {
+  id: number;
+  metric: CellMetric;
+  /** Set only when `metric` is "exercise". */
+  exerciseTypeId: number | null;
+  /** For exercise fields: the unit whose total is shown, or null to count entries. */
+  unit: string | null;
+  caption: string;
   sortOrder: number;
 }

@@ -1,5 +1,6 @@
 import {
   addDays,
+  type CellField,
   calendarWeeks,
   type DaySummary,
   type HighlightColor,
@@ -11,6 +12,8 @@ import { DayCell } from "./DayCell";
 interface Props {
   month: string;
   days: DaySummary[];
+  /** What each cell shows, in order. */
+  fields: readonly CellField[];
   today: string;
   selected: string | undefined;
   onSelect: (date: string) => void;
@@ -29,7 +32,16 @@ const MOVES: Record<string, (date: string) => string> = {
   End: (d) => addDays(d, 6 - new Date(`${d}T00:00:00Z`).getUTCDay()),
 };
 
-export function MonthGrid({ month, days, today, selected, onSelect, highlightFor, onMove }: Props) {
+export function MonthGrid({
+  month,
+  days,
+  fields,
+  today,
+  selected,
+  onSelect,
+  highlightFor,
+  onMove,
+}: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const keyboardMoved = useRef(false);
   const byDate = new Map(days.map((d) => [d.date, d]));
@@ -91,6 +103,7 @@ export function MonthGrid({ month, days, today, selected, onSelect, highlightFor
                 {day && (
                   <DayCell
                     day={day}
+                    fields={fields}
                     isToday={day.date === today}
                     isFuture={day.date > today}
                     isSelected={day.date === selected}

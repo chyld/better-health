@@ -1,10 +1,12 @@
 import { isEditableDate, shiftMonth } from "@better-health/shared";
+import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { type TouchEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { DayPanel } from "@/features/day/DayPanel";
+import { cellFieldsQuery } from "@/features/profile/cellFields";
 import { useHighlighter } from "@/features/profile/highlights";
 import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { useShortcuts } from "@/hooks/useShortcuts";
@@ -28,6 +30,7 @@ export function CalendarPage() {
   const isDesktop = useIsDesktop();
   const { data, isPending, isError, refetch } = useMonth(month);
   const highlightFor = useHighlighter();
+  const fields = useQuery(cellFieldsQuery).data ?? [];
 
   // A selected day outside the shown month is ignored.
   const selected = day?.startsWith(month) ? day : undefined;
@@ -127,6 +130,7 @@ export function CalendarPage() {
             <MonthGrid
               month={month}
               days={data.days}
+              fields={fields}
               today={today}
               selected={selected}
               onSelect={select}

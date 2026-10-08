@@ -41,7 +41,7 @@ describe("month view", () => {
     expect(cell("2026-10-01")).not.toHaveAttribute("data-future");
   });
 
-  test("each cell shows net, number of exercises and weight", async () => {
+  test("by default each cell shows net, weight, number of exercises and steps", async () => {
     fake.setDay("2026-10-02", {
       caloriesIn: 1850,
       caloriesActive: 2600,
@@ -60,13 +60,57 @@ describe("month view", () => {
     );
     expect(
       [...c.querySelectorAll("[data-value]")].map((e) => e.getAttribute("data-value")),
-    ).toEqual(["net", "exercise", "weight"]);
-    expect(c.querySelector('[data-value="net"]')).toHaveTextContent("\u2212750");
-    expect(c.querySelector('[data-value="exercise"]')).toHaveTextContent("2");
+    ).toEqual(["net", "weight", "exercises"]);
+    expect(c.querySelector('[data-value="net"]')).toHaveTextContent("N\u2212750");
+    expect(c.querySelector('[data-value="exercises"]')).toHaveTextContent("Ex2");
     expect(c.querySelector('[data-value="weight"]')).toHaveTextContent("182.4");
     expect(c.querySelector('[data-value="in"]')).toBeNull();
     expect(c.querySelector('[data-value="out"]')).toBeNull();
     expect(c.querySelector('[title="Note"]')).not.toBeNull();
+  });
+
+  test("each cell shows the values chosen on Profile, in order, with their captions", async () => {
+    const walk = fake.addType("Walking");
+    fake.state.cellFields = [
+      {
+        id: 1,
+        metric: "exercise",
+        exerciseTypeId: walk.id,
+        unit: "miles",
+        caption: "Walk",
+        sortOrder: 0,
+      },
+      { id: 2, metric: "in", exerciseTypeId: null, unit: null, caption: "Ate", sortOrder: 1 },
+      { id: 3, metric: "distance", exerciseTypeId: null, unit: null, caption: "mi", sortOrder: 2 },
+      { id: 4, metric: "weight", exerciseTypeId: null, unit: null, caption: "lb", sortOrder: 3 },
+    ];
+    fake.setDay("2026-10-02", { caloriesIn: 1850, weightLbs: 182.4 });
+    fake.addEntry("2026-10-02", walk.id, [{ unit: "miles", amount: 3.5 }]);
+    fake.addEntry("2026-10-02", walk.id, [{ unit: "miles", amount: 1 }]);
+    renderApp("/");
+    await screen.findByRole("grid");
+
+    const values = [...cell("2026-10-02").querySelectorAll("[data-value]")];
+    // No distance logged: that value is skipped.
+    expect(values.map((e) => e.getAttribute("data-value"))).toEqual([
+      `exercise:${walk.id}:miles`,
+      "in",
+      "weight",
+    ]);
+    expect(values.map((e) => e.textContent)).toEqual([
+      "Walk4.54.5",
+      "Ate1.9k1,850",
+      "lb182.4182.4",
+    ]);
+  });
+
+  test("with no values chosen, cells show only the date", async () => {
+    fake.state.cellFields = [];
+    fake.setDay("2026-10-02", { caloriesIn: 1850, weightLbs: 182.4 });
+    renderApp("/");
+    await screen.findByRole("grid");
+    expect(cell("2026-10-02").querySelectorAll("[data-value]")).toHaveLength(0);
+    expect(cell("2026-10-02")).toHaveAccessibleName(/in 1850/);
   });
 
   test("large nets are shortened on small screens", async () => {

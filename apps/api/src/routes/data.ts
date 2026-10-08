@@ -1,5 +1,8 @@
 import {
   baseCaloriesSetSchema,
+  cellFieldCreateSchema,
+  cellFieldOrderSchema,
+  cellFieldPatchSchema,
   dayPatchSchema,
   exerciseEntryCreateSchema,
   exerciseEntryPatchSchema,
@@ -19,6 +22,13 @@ import { validate } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { requireEditableDay } from "../middleware/day-lock";
 import { listBaseCalories, setBaseCalories } from "../services/base-calories";
+import {
+  createCellField,
+  deleteCellField,
+  listCellFields,
+  reorderCellFields,
+  updateCellField,
+} from "../services/cell-fields";
 import { getDay, getMonth, listHistory, listLog, listNotes, patchDay } from "../services/days";
 import {
   createExerciseType,
@@ -40,6 +50,7 @@ const dateParams = z.object({ date: isoDateSchema });
 const entryParams = z.object({ date: isoDateSchema, id: idParam });
 const typeParams = z.object({ id: idParam });
 const ruleParams = z.object({ id: idParam });
+const fieldParams = z.object({ id: idParam });
 const typesQuery = z.object({ include: z.literal("archived").optional() });
 
 export function dataRoutes(deps: Deps) {
@@ -57,6 +68,8 @@ export function dataRoutes(deps: Deps) {
     .use("/highlights", auth)
     .use("/highlights/*", auth)
     .use("/base-calories", auth)
+    .use("/cell-fields", auth)
+    .use("/cell-fields/*", auth)
     .get("/notes", (c) => c.json(listNotes(db, c.get("user").id), 200))
     .get("/history", (c) => c.json(listHistory(db, c.get("user").id), 200))
     .get("/log", (c) => c.json(listLog(db, c.get("user").id), 200))
@@ -97,6 +110,25 @@ export function dataRoutes(deps: Deps) {
     .get("/base-calories", (c) => c.json(listBaseCalories(db, c.get("user").id), 200))
     .put("/base-calories", validate("json", baseCaloriesSetSchema), (c) => {
       return c.json(setBaseCalories(db, c.get("user").id, c.req.valid("json")), 200);
+    })
+    .get("/cell-fields", (c) => c.json(listCellFields(db, c.get("user").id), 200))
+    .post("/cell-fields", validate("json", cellFieldCreateSchema), (c) => {
+      return c.json(createCellField(db, c.get("user").id, c.req.valid("json")), 201);
+    })
+    .put("/cell-fields/order", validate("json", cellFieldOrderSchema), (c) => {
+      return c.json(reorderCellFields(db, c.get("user").id, c.req.valid("json").ids), 200);
+    })
+    .patch(
+      "/cell-fields/:id",
+      validate("param", fieldParams),
+      validate("json", cellFieldPatchSchema),
+      (c) => {
+        const { id } = c.req.valid("param");
+        return c.json(updateCellField(db, c.get("user").id, id, c.req.valid("json")), 200);
+      },
+    )
+    .delete("/cell-fields/:id", validate("param", fieldParams), (c) => {
+      return c.json(deleteCellField(db, c.get("user").id, c.req.valid("param").id), 200);
     })
     .get("/highlights", (c) => c.json(listHighlightRules(db, c.get("user").id), 200))
     .post("/highlights", validate("json", highlightRuleCreateSchema), (c) => {

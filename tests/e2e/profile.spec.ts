@@ -49,3 +49,33 @@ test("a highlight rule on the Profile page colors matching days", async ({ page 
   await page.reload();
   await expect(cell(page, "2026-10-01")).toHaveAttribute("data-highlight", "teal");
 });
+
+test("calendar cells show the values chosen on the Profile page", async ({ page }) => {
+  await login(page);
+  const day = await openDay(page, "2026-10-01");
+  await fillAndSave(day, "Calories in", "1850");
+  await fillAndSave(day, "Weight", "182.4");
+  await fillAndSave(day, "Steps", "9000");
+  await closeDay(page);
+  const values = cell(page, "2026-10-01").locator("[data-value]");
+  await expect(values).toHaveCount(2);
+
+  await page.goto("/profile");
+  const form = page.getByRole("form", { name: "Add a calendar cell value" });
+  await form.getByLabel("Value").selectOption({ label: "Calories in" });
+  await expect(form.getByLabel("Caption")).toHaveValue("In");
+  await form.getByLabel("Caption").fill("Ate");
+  await form.getByRole("button", { name: "Add to cells" }).click();
+  const list = page.getByRole("list", { name: "Calendar cell values, in order" });
+  await list.getByRole("button", { name: "Remove Net calories" }).click();
+  await list.getByRole("button", { name: "Remove Exercises logged (all)" }).click();
+  await expect(list.getByRole("listitem")).toHaveCount(3);
+  await expectNoA11yViolations(page);
+
+  await page.getByRole("link", { name: "Back to calendar" }).click();
+  await expect(values).toHaveCount(3);
+  await expect(values.nth(0)).toHaveAttribute("data-value", "weight");
+  await expect(values.nth(1)).toHaveAttribute("data-value", "steps");
+  await expect(values.nth(2)).toHaveAttribute("data-value", "in");
+  await expect(values.nth(2)).toContainText("Ate");
+});

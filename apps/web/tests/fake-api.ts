@@ -1,8 +1,10 @@
 import {
   type BaseCaloriesChange,
   baseCaloriesOn,
+  type CellField,
   type DayDetail,
   type DaySummary,
+  DEFAULT_CELL_FIELDS,
   datesInMonth,
   dayCalories,
   type ExerciseType,
@@ -39,6 +41,16 @@ interface TypeRow {
 
 const PASSWORD = "password123";
 
+/** Ids far above the counter's, so tests' own ids stay as they were. */
+const defaultCellFields = (): CellField[] =>
+  DEFAULT_CELL_FIELDS.map((f, i) => ({
+    id: 1000 + i,
+    exerciseTypeId: null,
+    unit: null,
+    ...f,
+    sortOrder: i,
+  }));
+
 function createFake() {
   const state = {
     user: null as { id: number; username: string; isAdmin: boolean; timeZone: string } | null,
@@ -48,6 +60,8 @@ function createFake() {
     highlights: [] as HighlightRule[],
     /** Newest first, as the API lists them. */
     baseCalories: [] as BaseCaloriesChange[],
+    /** In list order; every user starts with the defaults, as on the server. */
+    cellFields: defaultCellFields(),
     /** What /api/health reports; the same as the client unless a test changes it. */
     serverVersion: __APP_VERSION__,
     nextId: 1,
@@ -316,6 +330,51 @@ function createFake() {
       ].sort((a, b) => b.startsOn.localeCompare(a.startsOn));
       return HttpResponse.json(state.baseCalories);
     }),
+    http.get("*/api/cell-fields", () => {
+      if (!state.user) return unauthorized();
+      return HttpResponse.json(state.cellFields);
+    }),
+    http.post("*/api/cell-fields", async ({ request }) => {
+      if (!state.user) return unauthorized();
+      const body = (await record(request, "/api/cell-fields")) as Omit<
+        CellField,
+        "id" | "sortOrder"
+      >;
+      state.cellFields.push({
+        id: state.nextId++,
+        ...body,
+        unit: body.unit ?? null,
+        sortOrder: state.cellFields.length,
+      });
+      return HttpResponse.json(state.cellFields, { status: 201 });
+    }),
+    http.put("*/api/cell-fields/order", async ({ request }) => {
+      if (!state.user) return unauthorized();
+      const { ids } = (await record(request, "/api/cell-fields/order")) as { ids: number[] };
+      const rest = state.cellFields.filter((f) => !ids.includes(f.id)).map((f) => f.id);
+      state.cellFields = [...ids, ...rest].flatMap((id, sortOrder) => {
+        const f = state.cellFields.find((x) => x.id === id);
+        return f ? [{ ...f, sortOrder }] : [];
+      });
+      return HttpResponse.json(state.cellFields);
+    }),
+    http.patch("*/api/cell-fields/:id", async ({ request, params }) => {
+      if (!state.user) return unauthorized();
+      const id = Number(params.id);
+      const { caption } = (await record(request, `/api/cell-fields/${id}`)) as { caption: string };
+      const f = state.cellFields.find((x) => x.id === id);
+      if (!f) return notFound();
+      f.caption = caption;
+      return HttpResponse.json(state.cellFields);
+    }),
+    http.delete("*/api/cell-fields/:id", async ({ request, params }) => {
+      if (!state.user) return unauthorized();
+      const id = Number(params.id);
+      await record(request, `/api/cell-fields/${id}`);
+      if (!state.cellFields.some((f) => f.id === id)) return notFound();
+      state.cellFields = state.cellFields.filter((f) => f.id !== id);
+      return HttpResponse.json(state.cellFields);
+    }),
     http.get("*/api/highlights", () => {
       if (!state.user) return unauthorized();
       return HttpResponse.json(state.highlights);
@@ -448,6 +507,7 @@ function createFake() {
       state.user = null;
       state.highlights = [];
       state.baseCalories = [];
+      state.cellFields = defaultCellFields();
       state.days.clear();
       state.entries = [];
       state.types = [];

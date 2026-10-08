@@ -1,8 +1,8 @@
-import { passwordSchema, usernameSchema } from "@better-health/shared";
+import { DEFAULT_CELL_FIELDS, passwordSchema, usernameSchema } from "@better-health/shared";
 import { asc, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { Db } from "../db/client";
-import { sessions, users } from "../db/schema";
+import { cellFields, sessions, users } from "../db/schema";
 import { type Clock, systemClock } from "../lib/clock";
 import { ConflictError, NotFoundError, ValidationError } from "../lib/errors";
 import { hashPassword, verifyPassword } from "../lib/password";
@@ -50,15 +50,19 @@ export async function createUser(
   if (findUserByUsername(db, username)) {
     throw new ConflictError(`User "${username}" already exists`);
   }
-  const user = db
-    .insert(users)
-    .values({
-      username,
-      passwordHash: await hashPassword(password),
-      createdAt: clock.now().toISOString(),
-    })
-    .returning()
-    .get();
+  const passwordHash = await hashPassword(password);
+  const user = db.transaction((tx) => {
+    const created = tx
+      .insert(users)
+      .values({ username, passwordHash, createdAt: clock.now().toISOString() })
+      .returning()
+      .get();
+    // Calendar cells start with the usual values; the user can change them on Profile.
+    tx.insert(cellFields)
+      .values(DEFAULT_CELL_FIELDS.map((f, sortOrder) => ({ userId: created.id, ...f, sortOrder })))
+      .run();
+    return created;
+  });
   return toPublic(user);
 }
 

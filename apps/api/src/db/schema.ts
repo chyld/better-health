@@ -1,4 +1,9 @@
-import { HIGHLIGHT_COLORS, HIGHLIGHT_METRICS, HIGHLIGHT_OPERATORS } from "@better-health/shared";
+import {
+  CELL_METRICS,
+  HIGHLIGHT_COLORS,
+  HIGHLIGHT_METRICS,
+  HIGHLIGHT_OPERATORS,
+} from "@better-health/shared";
 import { sql } from "drizzle-orm";
 import {
   index,
@@ -138,4 +143,25 @@ export const baseCalories = sqliteTable(
     calories: integer("calories").notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.startsOn] })],
+);
+
+/** What each user's calendar cells show, in order: a value and the caption before it. */
+export const cellFields = sqliteTable(
+  "cell_fields",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    metric: text("metric", { enum: CELL_METRICS }).notNull(),
+    // Set only for exercise fields; deleting the label deletes its fields.
+    exerciseTypeId: integer("exercise_type_id").references(() => exerciseTypes.id, {
+      onDelete: "cascade",
+    }),
+    // Exercise fields only: the unit to total, or null to count entries.
+    unit: text("unit"),
+    caption: text("caption").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+  },
+  (t) => [index("cell_fields_user_idx").on(t.userId)],
 );

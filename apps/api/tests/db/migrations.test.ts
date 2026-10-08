@@ -189,3 +189,31 @@ test("optional measurements migration moves units onto entries and merges labels
   ).toThrow();
   sqlite.close();
 });
+
+test("cell fields migration gives every existing user the usual four values", () => {
+  const path = join(dir, "app.db");
+  const old = databaseAtMigration(path, 9);
+  old.run(
+    "insert into users (id, username, password_hash, created_at) values (1, 'alice', 'x', 'x'), (2, 'bob', 'x', 'x')",
+  );
+  old.close();
+
+  const sqlite = migrateTo(path, 10);
+  expect(
+    sqlite
+      .query(
+        "select user_id, metric, caption, sort_order from cell_fields order by user_id, sort_order",
+      )
+      .all(),
+  ).toEqual(
+    [1, 2].flatMap((user_id) =>
+      [
+        ["net", "N"],
+        ["weight", "lb"],
+        ["exercises", "Ex"],
+        ["steps", "St"],
+      ].map(([metric, caption], sort_order) => ({ user_id, metric, caption, sort_order })),
+    ),
+  );
+  sqlite.close();
+});

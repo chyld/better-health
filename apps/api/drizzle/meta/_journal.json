@@ -64,6 +64,13 @@
       "when": 1791495863410,
       "tag": "0008_user_time_zone",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1791497610314,
+      "tag": "0009_cell_fields",
+      "breakpoints": true
     }
   ]
 }
