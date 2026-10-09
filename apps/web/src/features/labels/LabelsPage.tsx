@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api";
-import { labelTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 import { categoriesOf, exerciseTypesQuery, useLabelMutations } from "./queries";
 
@@ -312,13 +311,6 @@ function LabelRow({
         label.archived && "bg-white/60",
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "mr-1 size-3 shrink-0 rounded-full",
-          label.archived ? "bg-slate-300" : labelTone(label.id).dot,
-        )}
-      />
       <span className="min-w-0 flex-1 break-words">
         <span className="font-medium">{label.name}</span>
         {label.category ? (

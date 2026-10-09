@@ -10,7 +10,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeft, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, unwrap } from "@/lib/api";
-import { labelTone, metricTone, netTone } from "@/lib/tones";
+import { metricTone, netTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 
 export const logQuery = queryOptions({
@@ -197,13 +197,6 @@ function LogDay({ day, isToday }: { day: DayDetail; isToday: boolean }) {
         <ul aria-label="Exercises" className="space-y-1">
           {day.exercises.map((entry) => (
             <li key={entry.id} className="flex items-center gap-2 text-sm">
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "size-2.5 shrink-0 rounded-full",
-                  labelTone(entry.exerciseTypeId).dot,
-                )}
-              />
               <span className="min-w-0 flex-1">
                 <span className="font-medium">{entry.name}</span>
                 {entry.category && (

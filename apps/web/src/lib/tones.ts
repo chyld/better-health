@@ -1,7 +1,4 @@
-/**
- * Colours for each metric, and a rotating palette that gives every exercise label its own
- * colour. Full class names are spelled out so Tailwind can find them.
- */
+/** Colours for each metric. Full class names are spelled out so Tailwind can find them. */
 export const metricTone = {
   in: {
     card: "bg-orange-50 ring-orange-200/70",
@@ -56,34 +53,4 @@ export function netTone(net: number | null) {
         card: "bg-linear-to-br from-amber-50 to-orange-100 ring-orange-200",
         text: "text-orange-800",
       };
-}
-
-const LABEL_TONES = [
-  { dot: "bg-sky-500", chip: "bg-sky-50 text-sky-900 ring-sky-200", on: "bg-sky-700" },
-  {
-    dot: "bg-fuchsia-500",
-    chip: "bg-fuchsia-50 text-fuchsia-900 ring-fuchsia-200",
-    on: "bg-fuchsia-600",
-  },
-  {
-    dot: "bg-emerald-500",
-    chip: "bg-emerald-50 text-emerald-900 ring-emerald-200",
-    on: "bg-emerald-700",
-  },
-  {
-    dot: "bg-orange-500",
-    chip: "bg-orange-50 text-orange-900 ring-orange-200",
-    on: "bg-orange-700",
-  },
-  {
-    dot: "bg-violet-500",
-    chip: "bg-violet-50 text-violet-900 ring-violet-200",
-    on: "bg-violet-600",
-  },
-  { dot: "bg-rose-500", chip: "bg-rose-50 text-rose-900 ring-rose-200", on: "bg-rose-600" },
-] as const;
-
-/** A stable colour for an exercise label, picked by its id. */
-export function labelTone(id: number) {
-  return LABEL_TONES[Math.abs(id) % LABEL_TONES.length] as (typeof LABEL_TONES)[number];
 }

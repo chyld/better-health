@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { byRecentUse, exerciseTypesQuery, groupByCategory } from "@/features/labels/queries";
 import { ApiError } from "@/lib/api";
-import { labelTone, metricTone } from "@/lib/tones";
+import { metricTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 import { useExerciseMutations } from "./queries";
 
@@ -149,7 +149,7 @@ function Stickers({
               onClick={() => add.mutate({ exerciseTypeId: t.id })}
               className={cn(
                 "inline-flex items-center gap-1 rounded-full py-2.5 pr-4 pl-3 text-base font-semibold ring-1 transition-all outline-none hover:brightness-95 focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-95 disabled:opacity-60 lg:py-1.5 lg:pr-3 lg:pl-2 lg:text-sm",
-                labelTone(t.id).chip,
+                "bg-white text-slate-900 ring-violet-200",
               )}
             >
               <Plus aria-hidden="true" className="size-4" />
@@ -182,10 +182,6 @@ function EntryRow({
   return (
     <li className="space-y-2 rounded-xl bg-white py-1 pr-1 pl-3 text-base shadow-xs lg:text-sm">
       <div className="flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className={cn("size-2.5 shrink-0 rounded-full", labelTone(entry.exerciseTypeId).dot)}
-        />
         <span className="min-w-0 flex-1">
           <span className="font-medium">{entry.name}</span>
           {entry.category && (

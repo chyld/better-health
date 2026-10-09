@@ -12,7 +12,7 @@ import {
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
 import { paletteTone } from "@/lib/palette";
-import { labelTone, metricTone, netTone } from "@/lib/tones";
+import { metricTone, netTone } from "@/lib/tones";
 
 /** What the user's calendar cells show, in order. */
 export const cellFieldsQuery = queryOptions({
@@ -95,10 +95,7 @@ export function formatCellValue(
 }
 
 /** Background and text colour of a value's pill on a cell: its chosen colour, or its own. */
-export function cellTone(
-  field: Pick<CellField, "metric" | "exerciseTypeId" | "color">,
-  value: number,
-) {
+export function cellTone(field: Pick<CellField, "metric" | "color">, value: number) {
   if (field.color) return paletteTone[field.color].pill;
   const card = (t: { card: string; text: string }) => `${t.card} ${t.text}`;
   switch (field.metric) {
@@ -117,9 +114,8 @@ export function cellTone(
     case "distance":
       return card(metricTone.distance);
     case "exercises":
-      return card(metricTone.exercise);
     case "exercise":
-      return labelTone(field.exerciseTypeId ?? 0).chip;
+      return card(metricTone.exercise);
   }
 }
 
