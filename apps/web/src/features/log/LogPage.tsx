@@ -10,7 +10,6 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { ArrowLeft, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, unwrap } from "@/lib/api";
-import { metricTone, netTone } from "@/lib/tones";
 import { cn } from "@/lib/utils";
 
 export const logQuery = queryOptions({
@@ -101,43 +100,35 @@ function LogDay({ day, isToday }: { day: DayDetail; isToday: boolean }) {
     day.caloriesIn !== null && {
       label: "In",
       value: `${formatNumber(day.caloriesIn)} cal`,
-      text: metricTone.in.text,
     },
     // Active and base only when a base counts toward the day; otherwise "Out" is all there is.
     baseCounts && {
       label: "Active",
       value: `${formatNumber(day.caloriesActive ?? 0)} cal`,
-      text: metricTone.out.text,
     },
     baseCounts && {
       label: "Base",
       value: `${formatNumber(day.caloriesBase)} cal`,
-      text: metricTone.out.text,
     },
     day.caloriesOut !== null && {
       label: "Out",
       value: `${formatNumber(day.caloriesOut)} cal`,
-      text: metricTone.out.text,
     },
     day.net !== null && {
       label: "Net",
       value: `${formatNumber(day.net, { signed: true })} cal`,
-      text: netTone(day.net).text,
     },
     day.weightLbs !== null && {
       label: "Weight",
       value: `${formatWeight(day.weightLbs)} lbs`,
-      text: metricTone.weight.text,
     },
     day.steps !== null && {
       label: "Steps",
       value: formatNumber(day.steps),
-      text: metricTone.steps.text,
     },
     day.distanceMiles !== null && {
       label: "Distance",
       value: `${formatAmount(day.distanceMiles)} mi`,
-      text: metricTone.distance.text,
     },
   ].filter((m) => m !== false);
   const empty = metrics.length === 0 && day.exercises.length === 0 && !day.note;
@@ -187,7 +178,7 @@ function LogDay({ day, isToday }: { day: DayDetail; isToday: boolean }) {
           {metrics.map((m) => (
             <div key={m.label} className="flex items-baseline gap-1.5">
               <dt className="text-xs font-medium text-muted-foreground">{m.label}</dt>
-              <dd className={cn("font-bold tabular-nums", m.text)}>{m.value}</dd>
+              <dd className="font-bold tabular-nums">{m.value}</dd>
             </div>
           ))}
         </dl>
